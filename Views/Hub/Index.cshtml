@@ -5,7 +5,11 @@
      OBERER BEREICH: Wetter + Mobilität
      ═══════════════════════════════════════════════════════════════════════ -->
 <section class="mc-section">
-    <div class="mc-section-title"><i class="bi bi-cloud-sun"></i> Informationen &amp; Mobilität</div>
+    <div class="mc-section-title mc-collapsible" onclick="toggleSection(this)">
+        <i class="bi bi-cloud-sun"></i> Informationen &amp; Mobilität
+        <i class="bi bi-chevron-down mc-chevron"></i>
+    </div>
+    <div class="mc-section-body" style="display:none;">
 
     <div style="display:grid; grid-template-columns:1fr minmax(280px, 360px); gap:1.25rem; align-items:start;">
 
@@ -150,13 +154,19 @@
             <div class="weather-forecast" id="weatherForecast"></div>
         </div>
     </div>
+
+    </div><!-- /mc-section-body -->
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
      MITTLERER BEREICH: Konfigurierbare Kacheln
      ═══════════════════════════════════════════════════════════════════════ -->
 <section class="mc-section">
-    <div class="mc-section-title"><i class="bi bi-bookmark-star"></i> Meine Schnellzugriffe</div>
+    <div class="mc-section-title mc-collapsible" onclick="toggleSection(this)">
+        <i class="bi bi-bookmark-star"></i> Meine Schnellzugriffe
+        <i class="bi bi-chevron-down mc-chevron"></i>
+    </div>
+    <div class="mc-section-body" style="display:none;">
 
     <div class="mc-tiles-grid" id="tilesGrid">
         <!-- Tiles werden per JS geladen -->
@@ -167,13 +177,19 @@
             <div class="mc-tile-title" style="color:var(--mc-text-muted);">Hinzufügen</div>
         </div>
     </div>
+
+    </div><!-- /mc-section-body -->
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
      UNTERER BEREICH: Dashboard mit Kennzahlen
      ═══════════════════════════════════════════════════════════════════════ -->
 <section class="mc-section">
-    <div class="mc-section-title"><i class="bi bi-graph-up-arrow"></i> Dashboard &amp; Kennzahlen</div>
+    <div class="mc-section-title mc-collapsible" onclick="toggleSection(this)">
+        <i class="bi bi-graph-up-arrow"></i> Dashboard &amp; Kennzahlen
+        <i class="bi bi-chevron-down mc-chevron"></i>
+    </div>
+    <div class="mc-section-body" style="display:none;">
 
     <!-- KPI Karten -->
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr)); gap:1rem; margin-bottom:1.5rem;">
@@ -234,6 +250,8 @@
             <canvas id="chartOnboarding" height="220"></canvas>
         </div>
     </div>
+
+    </div><!-- /mc-section-body -->
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
@@ -272,6 +290,12 @@
     </div>
 </div>
 <style>
+.mc-collapsible{cursor:pointer;user-select:none;position:relative;}
+.mc-collapsible:hover{opacity:.85;}
+.mc-chevron{margin-left:auto;font-size:.85rem;transition:transform .3s ease;color:var(--mc-text-muted);}
+.mc-collapsible.open .mc-chevron{transform:rotate(180deg);}
+.mc-section-body{overflow:hidden;transition:max-height .4s ease, opacity .3s ease, margin .3s ease;max-height:0;opacity:0;margin-top:0;}
+.mc-section-body.open{max-height:5000px;opacity:1;margin-top:0;}
 .color-pick{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .2s;}
 .color-pick:hover,.color-pick.active{border-color:var(--mc-gold);transform:scale(1.15);}
 .ac-dropdown{position:fixed;z-index:99999;background:#fff;border:1px solid #ccc;border-radius:0 0 10px 10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);max-height:min(420px, 60vh);overflow-y:auto;display:none;}
@@ -299,6 +323,27 @@
 
 @section Scripts {
 <script>
+// ═══ Collapsible Sections ══════════════════════════════════════════════════════
+function toggleSection(header) {
+    const body = header.nextElementSibling;
+    if (!body || !body.classList.contains('mc-section-body')) return;
+    const isOpen = body.classList.contains('open');
+    if (isOpen) {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        requestAnimationFrame(() => {
+            body.style.maxHeight = '0';
+            body.classList.remove('open');
+            header.classList.remove('open');
+        });
+    } else {
+        body.style.display = '';
+        body.classList.add('open');
+        header.classList.add('open');
+        body.style.maxHeight = body.scrollHeight + 'px';
+        setTimeout(() => { body.style.maxHeight = '5000px'; }, 400);
+    }
+}
+
 // ═══ Autocomplete ═════════════════════════════════════════════════════════════
 const acTimers = {};
 document.addEventListener('click', function(e) {
