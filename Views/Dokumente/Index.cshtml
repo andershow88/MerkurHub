@@ -1,0 +1,169 @@
+@model List<MerkurHub.Models.PdfDokument>
+@{ ViewData["Title"] = "Dokumentenregister"; }
+
+<section class="mc-section">
+    <div class="mc-section-title"><i class="bi bi-file-earmark-pdf"></i> Dokumentenregister</div>
+
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="mc-card" style="margin-bottom:1.5rem;">
+            <div class="mc-card-header"><i class="bi bi-cloud-arrow-up"></i> PDF hochladen</div>
+            <div id="uploadArea" style="border:2px dashed var(--mc-border); border-radius:var(--mc-radius-sm); padding:2rem; text-align:center; cursor:pointer; transition:all .2s;" onclick="document.getElementById('pdfFile').click();" ondragover="event.preventDefault(); this.style.borderColor='var(--mc-gold)';" ondragleave="this.style.borderColor='var(--mc-border)';" ondrop="handleDrop(event)">
+                <i class="bi bi-file-earmark-pdf" style="font-size:2rem; color:var(--mc-gold);"></i>
+                <div style="margin-top:.5rem; color:var(--mc-text-muted);">PDF hierher ziehen oder klicken zum Auswählen</div>
+                <input type="file" id="pdfFile" accept=".pdf" style="display:none;" onchange="dateiGewaehlt()" />
+            </div>
+            <div id="uploadForm" style="display:none; margin-top:1rem;">
+                <div style="display:flex; gap:.75rem; align-items:end; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:200px;">
+                        <label class="mc-label">Dokumenttitel</label>
+                        <input class="mc-input" id="pdfTitel" placeholder="Titel (optional, sonst Dateiname)" />
+                    </div>
+                    <div style="color:var(--mc-text-muted); font-size:.85rem;" id="uploadFileName"></div>
+                    <button class="btn-mc btn-mc-gold" onclick="uploadStarten()" id="uploadBtn">
+                        <i class="bi bi-cloud-arrow-up"></i> Hochladen &amp; Verarbeiten
+                    </button>
+                </div>
+                <div id="uploadProgress" style="display:none; margin-top:1rem;">
+                    <div style="display:flex; align-items:center; gap:.75rem;">
+                        <div class="search-spinner" style="width:24px; height:24px; border-width:2px;"></div>
+                        <span id="uploadStatus" style="color:var(--mc-text-muted); font-size:.875rem;">PDF wird verarbeitet und indexiert...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="mc-card">
+        @if (Model.Count == 0)
+        {
+            <div style="text-align:center; padding:2rem; color:var(--mc-text-muted);">
+                <i class="bi bi-inbox" style="font-size:2.5rem; display:block; margin-bottom:.75rem;"></i>
+                Noch keine Dokumente hochgeladen.
+            </div>
+        }
+        else
+        {
+            <div style="overflow-x:auto;">
+                <table class="mc-doc-table">
+                    <thead>
+                        <tr>
+                            <th>Titel</th>
+                            <th>Dateiname</th>
+                            <th>Hochgeladen am</th>
+                            <th>Hochgeladen von</th>
+                            <th>Größe</th>
+                            <th>Seiten</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in Model)
+                        {
+                            <tr>
+                                <td style="font-weight:600;">@d.Titel</td>
+                                <td style="font-size:.85rem; color:var(--mc-text-muted);">@d.Dateiname</td>
+                                <td>@d.HochgeladenAm.ToString("dd.MM.yyyy HH:mm")</td>
+                                <td>@d.HochgeladenVonName</td>
+                                <td>@FormatSize(d.Dateigroesse)</td>
+                                <td>@d.Seitenanzahl</td>
+                                <td>
+                                    @if (d.IstVerarbeitet)
+                                    {
+                                        <span style="color:var(--mc-success); font-size:.8rem;"><i class="bi bi-check-circle-fill"></i> Indexiert</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:var(--mc-warning); font-size:.8rem;"><i class="bi bi-hourglass-split"></i> Wird verarbeitet</span>
+                                    }
+                                </td>
+                                <td style="white-space:nowrap;">
+                                    <a href="/Dokumente/Herunterladen/@d.Id" class="btn-mc btn-mc-outline" style="padding:.3rem .6rem; font-size:.78rem; text-decoration:none;">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <button class="btn-mc btn-mc-outline" style="padding:.3rem .6rem; font-size:.78rem; color:var(--mc-danger); border-color:var(--mc-danger);" onclick="loeschen(@d.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>
+
+<style>
+.mc-doc-table{width:100%;border-collapse:collapse;}
+.mc-doc-table th{text-align:left;font-size:.78rem;font-weight:600;color:var(--mc-text-muted);text-transform:uppercase;letter-spacing:.3px;padding:.6rem .75rem;border-bottom:2px solid var(--mc-border);}
+.mc-doc-table td{padding:.65rem .75rem;border-bottom:1px solid var(--mc-border);font-size:.875rem;vertical-align:middle;}
+.mc-doc-table tr:hover{background:rgba(200,169,110,.04);}
+.search-spinner{width:40px;height:40px;border:3px solid var(--mc-border);border-top-color:var(--mc-gold);border-radius:50%;animation:spin 0.8s linear infinite;}
+@@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+
+@section Scripts {
+<script>
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.style.borderColor = 'var(--mc-border)';
+    if (e.dataTransfer.files.length) {
+        document.getElementById('pdfFile').files = e.dataTransfer.files;
+        dateiGewaehlt();
+    }
+}
+
+function dateiGewaehlt() {
+    const f = document.getElementById('pdfFile').files[0];
+    if (!f) return;
+    document.getElementById('uploadFileName').textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(1) + ' MB)';
+    document.getElementById('pdfTitel').value = f.name.replace('.pdf', '').replace(/[_-]/g, ' ');
+    document.getElementById('uploadForm').style.display = 'block';
+}
+
+async function uploadStarten() {
+    const f = document.getElementById('pdfFile').files[0];
+    if (!f) return;
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true;
+    document.getElementById('uploadProgress').style.display = 'block';
+    document.getElementById('uploadStatus').textContent = 'PDF wird hochgeladen und indexiert... (kann bei großen Dateien etwas dauern)';
+
+    const fd = new FormData();
+    fd.append('datei', f);
+    fd.append('titel', document.getElementById('pdfTitel').value);
+
+    try {
+        const r = await fetch('/Dokumente/Hochladen', { method: 'POST', body: fd });
+        const data = await r.json();
+        if (data.ok) {
+            document.getElementById('uploadStatus').innerHTML = '<i class="bi bi-check-circle-fill" style="color:var(--mc-success);"></i> Erfolgreich! ' + data.seiten + ' Seiten indexiert.';
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            document.getElementById('uploadStatus').innerHTML = '<i class="bi bi-exclamation-triangle" style="color:var(--mc-danger);"></i> ' + (data.error || 'Fehler');
+            btn.disabled = false;
+        }
+    } catch {
+        document.getElementById('uploadStatus').innerHTML = '<i class="bi bi-exclamation-triangle" style="color:var(--mc-danger);"></i> Verbindungsfehler';
+        btn.disabled = false;
+    }
+}
+
+async function loeschen(id) {
+    if (!confirm('Dokument dauerhaft löschen?')) return;
+    await fetch('/Dokumente/Loeschen/' + id, { method: 'POST' });
+    location.reload();
+}
+
+function FormatSize(bytes) { return bytes < 1024*1024 ? (bytes/1024).toFixed(0) + ' KB' : (bytes/1024/1024).toFixed(1) + ' MB'; }
+</script>
+}
+
+@functions {
+    static string FormatSize(long bytes) => bytes < 1024 * 1024 ? (bytes / 1024) + " KB" : (bytes / 1024.0 / 1024.0).ToString("0.1") + " MB";
+}

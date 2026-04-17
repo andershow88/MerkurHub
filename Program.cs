@@ -50,6 +50,7 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Hub/Error");
 
 app.UseStaticFiles();
+Directory.CreateDirectory(Path.Combine(app.Environment.WebRootPath, "uploads", "documents"));
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

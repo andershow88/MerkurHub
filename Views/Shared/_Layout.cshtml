@@ -24,8 +24,11 @@
     </div>
 
     <div class="mc-topbar-nav">
-        <a href="/Hub/Index" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+        <a href="/Hub/Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Hub" ? "active" : "")">
             <i class="bi bi-grid-1x2-fill"></i> Hub
+        </a>
+        <a href="/Dokumente/Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Dokumente" ? "active" : "")">
+            <i class="bi bi-file-earmark-pdf"></i> Dokumentenregister
         </a>
     </div>
 
@@ -36,6 +39,9 @@
             <span style="margin-left:.35rem;"><i class="bi bi-calendar3"></i></span>
             <span id="deDate"></span>
         </span>
+        <button onclick="ragFensterOeffnen()" style="padding:.4rem .85rem; border:none; border-radius:var(--mc-radius-sm); background:linear-gradient(135deg,var(--mc-navy),#2c3e64); color:var(--mc-gold); cursor:pointer; font-size:.8rem; font-weight:600; display:flex; align-items:center; gap:.4rem; transition:all .2s;" title="Wissenssuche">
+            <i class="bi bi-book"></i> Wissenssuche
+        </button>
         <span class="mc-topbar-user d-none-sm">
             <i class="bi bi-person-circle"></i> @userName
         </span>
@@ -82,6 +88,187 @@
     updateDeClock();
     setInterval(updateDeClock, 30000);
 </script>
+<!-- ===== RAG Wissenssuche Fenster ===== -->
+<div id="ragFenster" style="display:none; position:fixed; z-index:1001; top:10vh; left:calc(50vw - 300px); width:min(620px,calc(100vw - 2rem)); height:min(700px,calc(100vh - 4rem)); background:var(--mc-surface); border:1px solid var(--mc-border); border-radius:var(--mc-radius); box-shadow:0 8px 40px rgba(0,0,0,.25); flex-direction:column; overflow:hidden; resize:both; min-width:360px; min-height:400px;">
+    <div id="ragHeader" style="padding:.65rem 1rem; background:linear-gradient(135deg,var(--mc-navy),#2c3e64); color:#fff; display:flex; align-items:center; justify-content:space-between; cursor:move; user-select:none; flex-shrink:0;">
+        <div style="display:flex; align-items:center; gap:.5rem;">
+            <i class="bi bi-book" style="color:var(--mc-gold); font-size:1.15rem;"></i>
+            <strong>Wissenssuche</strong>
+            <span style="font-size:.72rem; opacity:.7;">Dokumente durchsuchen</span>
+        </div>
+        <div style="display:flex; gap:.25rem;">
+            <button onclick="ragMaximieren()" title="Maximieren" style="background:transparent; border:none; color:#fff; cursor:pointer; padding:.25rem .4rem; font-size:.9rem;"><i class="bi bi-arrows-fullscreen" id="ragMaxIcon"></i></button>
+            <button onclick="ragFensterSchliessen()" title="Schließen" style="background:transparent; border:none; color:#fff; cursor:pointer; padding:.25rem .4rem; font-size:.9rem;"><i class="bi bi-x-lg"></i></button>
+        </div>
+    </div>
+
+    <!-- Auswahl-Screen -->
+    <div id="ragAuswahl" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:2rem;">
+        <div style="font-size:1.1rem; font-weight:600; color:var(--mc-text); margin-bottom:.5rem;">Was möchtest du tun?</div>
+        <button onclick="ragSucheModus()" style="width:100%; max-width:360px; padding:1.25rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius); background:var(--mc-bg-card); cursor:pointer; text-align:left; display:flex; align-items:center; gap:1rem; transition:all .2s;" onmouseover="this.style.borderColor='var(--mc-gold)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--mc-border)';this.style.transform=''">
+            <div style="width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,var(--mc-navy),#2c3e64); display:flex; align-items:center; justify-content:center;"><i class="bi bi-search" style="color:var(--mc-gold); font-size:1.3rem;"></i></div>
+            <div><div style="font-weight:600; color:var(--mc-text);">Inhalte durchsuchen</div><div style="font-size:.8rem; color:var(--mc-text-muted);">Stelle Fragen zu allen hochgeladenen Dokumenten</div></div>
+        </button>
+        <button onclick="aiOeffnen(); ragFensterSchliessen();" style="width:100%; max-width:360px; padding:1.25rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius); background:var(--mc-bg-card); cursor:pointer; text-align:left; display:flex; align-items:center; gap:1rem; transition:all .2s;" onmouseover="this.style.borderColor='var(--mc-gold)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--mc-border)';this.style.transform=''">
+            <div style="width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#c8a96e,#b8994e); display:flex; align-items:center; justify-content:center;"><i class="bi bi-stars" style="color:#fff; font-size:1.3rem;"></i></div>
+            <div><div style="font-weight:600; color:var(--mc-text);">KI-Assistent</div><div style="font-size:.8rem; color:var(--mc-text-muted);">Allgemeine Fragen &amp; Bankwissen</div></div>
+        </button>
+    </div>
+
+    <!-- Such-Modus -->
+    <div id="ragSuche" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
+        <div style="padding:.5rem 1rem; border-bottom:1px solid var(--mc-border); display:flex; align-items:center; gap:.5rem;">
+            <button onclick="ragZurueck()" style="background:none; border:none; cursor:pointer; color:var(--mc-text-muted); font-size:.9rem;"><i class="bi bi-arrow-left"></i></button>
+            <span style="font-size:.85rem; font-weight:500;">Inhalte durchsuchen</span>
+            <span id="ragDokCount" style="margin-left:auto; font-size:.72rem; color:var(--mc-text-muted);"></span>
+        </div>
+        <div id="ragNachrichten" style="flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:.5rem;">
+            <div class="ai-msg ai-msg-assistant">
+                <div class="ai-msg-bubble" style="background:var(--mc-surface); border:1px solid var(--mc-border); padding:.75rem; border-radius:var(--mc-radius-sm);">
+                    <div style="font-size:.75rem; color:var(--mc-text-muted); margin-bottom:.25rem;">Dokumenten-Assistent</div>
+                    Stelle eine Frage zu den hochgeladenen Dokumenten. Ich durchsuche alle Inhalte und zeige dir die relevanten Stellen mit Quellenangabe.
+                </div>
+            </div>
+        </div>
+        <div style="padding:.65rem 1rem; border-top:1px solid var(--mc-border); flex-shrink:0;">
+            <div style="display:flex; gap:.5rem;">
+                <input type="text" id="ragInput" placeholder="Frage zu Dokumenten eingeben…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();ragSenden();}" style="flex:1; padding:.55rem .75rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius-sm); background:var(--mc-bg); color:var(--mc-text); font-size:.9rem;" />
+                <button id="ragSendBtn" onclick="ragSenden()" style="padding:.55rem 1rem; border:none; border-radius:var(--mc-radius-sm); background:linear-gradient(135deg,var(--mc-navy),#2c3e64); color:var(--mc-gold); cursor:pointer;"><i class="bi bi-send"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===== RAG Wissenssuche =====
+let ragVerlauf = [], ragBesetzt = false, ragMaximiert = false;
+let ragDragOffset = {x:0, y:0}, ragDragging = false;
+
+function ragFensterOeffnen() {
+    const f = document.getElementById('ragFenster');
+    f.style.display = 'flex';
+    document.getElementById('ragAuswahl').style.display = 'flex';
+    document.getElementById('ragSuche').style.display = 'none';
+}
+function ragFensterSchliessen() { document.getElementById('ragFenster').style.display = 'none'; }
+
+function ragMaximieren() {
+    const f = document.getElementById('ragFenster');
+    ragMaximiert = !ragMaximiert;
+    if (ragMaximiert) {
+        f.dataset.prevStyle = f.style.cssText;
+        f.style.cssText = 'display:flex; position:fixed; z-index:1001; inset:0; width:100%; height:100%; border-radius:0; flex-direction:column; overflow:hidden; background:var(--mc-surface); border:none;';
+        document.getElementById('ragMaxIcon').className = 'bi bi-fullscreen-exit';
+    } else {
+        f.style.cssText = f.dataset.prevStyle || '';
+        f.style.display = 'flex';
+        document.getElementById('ragMaxIcon').className = 'bi bi-arrows-fullscreen';
+    }
+}
+
+function ragSucheModus() {
+    document.getElementById('ragAuswahl').style.display = 'none';
+    document.getElementById('ragSuche').style.display = 'flex';
+    setTimeout(() => document.getElementById('ragInput')?.focus(), 50);
+    fetch('/api/Tiles').catch(()=>{});
+}
+
+function ragZurueck() {
+    document.getElementById('ragSuche').style.display = 'none';
+    document.getElementById('ragAuswahl').style.display = 'flex';
+}
+
+async function ragSenden() {
+    const inp = document.getElementById('ragInput');
+    const frage = inp?.value.trim();
+    if (!frage || ragBesetzt) return;
+    ragBesetzt = true;
+    inp.value = '';
+    const btn = document.getElementById('ragSendBtn');
+    if (btn) btn.disabled = true;
+
+    ragMsgAnzeigen('user', frage);
+    const typEl = ragTippenZeigen();
+
+    try {
+        const resp = await fetch('/DokumentSucheApi/Fragen', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ frage, verlauf: ragVerlauf })
+        });
+        const data = await resp.json();
+        typEl?.remove();
+
+        if (data.error) {
+            ragMsgAnzeigen('assistant', '**Fehler:** ' + data.error);
+        } else {
+            let html = data.antwort || '';
+            if (data.quellen?.length) {
+                html += '\n\n---\n**Quellen:**\n';
+                data.quellen.forEach(q => {
+                    html += `- [${q.dokument}, Seite ${q.seite}](/Dokumente/Herunterladen/${q.dokumentId}) _(${q.relevanz}% Relevanz)_\n`;
+                });
+            }
+            ragMsgAnzeigen('assistant', html);
+            ragVerlauf.push({rolle:'user', text:frage});
+            ragVerlauf.push({rolle:'assistant', text: data.antwort || ''});
+            if (ragVerlauf.length > 8) ragVerlauf = ragVerlauf.slice(-8);
+        }
+    } catch { typEl?.remove(); ragMsgAnzeigen('assistant', '**Fehler:** Verbindung fehlgeschlagen.'); }
+    finally { ragBesetzt = false; if (btn) btn.disabled = false; inp?.focus(); }
+}
+
+function ragMsgAnzeigen(rolle, text) {
+    const cont = document.getElementById('ragNachrichten');
+    if (!cont) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'ai-msg ai-msg-' + rolle;
+    const bubble = document.createElement('div');
+    bubble.className = 'ai-msg-bubble';
+    if (rolle === 'assistant') {
+        bubble.style.cssText = 'background:var(--mc-surface); border:1px solid var(--mc-border); padding:.75rem; border-radius:var(--mc-radius-sm);';
+        bubble.innerHTML = '<div style="font-size:.75rem;color:var(--mc-text-muted);margin-bottom:.25rem;">Dokumenten-Assistent</div>' + aiMarkdown(text);
+    } else { bubble.textContent = text; }
+    wrap.appendChild(bubble);
+    cont.appendChild(wrap);
+    cont.scrollTop = cont.scrollHeight;
+}
+
+function ragTippenZeigen() {
+    const cont = document.getElementById('ragNachrichten');
+    if (!cont) return null;
+    const w = document.createElement('div');
+    w.className = 'ai-msg ai-msg-assistant';
+    w.innerHTML = '<div class="ai-msg-bubble" style="background:var(--mc-surface);border:1px solid var(--mc-border);padding:.75rem;border-radius:var(--mc-radius-sm);"><div style="display:flex;align-items:center;gap:.75rem;"><div class="search-spinner" style="width:20px;height:20px;border-width:2px;"></div><span style="font-size:.85rem;color:var(--mc-text-muted);">Dokumente werden durchsucht...</span></div></div>';
+    cont.appendChild(w);
+    cont.scrollTop = cont.scrollHeight;
+    return w;
+}
+
+// Drag
+const ragH = document.getElementById('ragHeader');
+if (ragH) {
+    ragH.addEventListener('mousedown', function(e) {
+        if (ragMaximiert) return;
+        const f = document.getElementById('ragFenster');
+        ragDragging = true;
+        ragDragOffset.x = e.clientX - f.offsetLeft;
+        ragDragOffset.y = e.clientY - f.offsetTop;
+    });
+    document.addEventListener('mousemove', function(e) {
+        if (!ragDragging) return;
+        const f = document.getElementById('ragFenster');
+        f.style.left = (e.clientX - ragDragOffset.x) + 'px';
+        f.style.top = (e.clientY - ragDragOffset.y) + 'px';
+    });
+    document.addEventListener('mouseup', function() { ragDragging = false; });
+}
+</script>
+
+<style>
+#ragFenster .search-spinner{border:3px solid var(--mc-border);border-top-color:var(--mc-gold);border-radius:50%;animation:ragSpin .8s linear infinite;}
+@@keyframes ragSpin{to{transform:rotate(360deg);}}
+</style>
+
 <!-- ===== KI-Assistent FAB ===== -->
 <button id="aiFab" onclick="aiOeffnen()" title="KI-Assistent"
         style="position:fixed; right:1.25rem; bottom:1.25rem; z-index:995; width:56px; height:56px; border-radius:50%; border:none; background:linear-gradient(135deg, var(--mc-navy), #2c3e64); color:var(--mc-gold); box-shadow:var(--mc-shadow-lg); cursor:pointer; font-size:1.5rem; display:flex; align-items:center; justify-content:center;">
