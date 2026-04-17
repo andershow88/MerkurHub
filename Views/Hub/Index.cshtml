@@ -298,6 +298,10 @@ document.addEventListener('click', function(e) {
     if (!e.target.closest('.ac-dropdown') && !e.target.closest('.mc-input'))
         document.querySelectorAll('.ac-dropdown').forEach(d => d.classList.remove('open'));
 });
+// Bei Scroll alle offenen Dropdowns schließen
+window.addEventListener('scroll', function() {
+    document.querySelectorAll('.ac-dropdown.open').forEach(d => d.classList.remove('open'));
+}, { passive: true });
 
 function dbAutocomplete(input, dropdownId) {
     const key = dropdownId;
@@ -354,14 +358,30 @@ function mvgAutocomplete(input, dropdownId) {
     }, 200);
 }
 
+// Dropdown-Elemente aus Karten raus in body verschieben (transform bricht position:fixed)
+document.querySelectorAll('.ac-dropdown').forEach(dd => document.body.appendChild(dd));
+
 function acPosition(inputId, ddId) {
     const inp = document.getElementById(inputId);
     const dd = document.getElementById(ddId);
     if (!inp || !dd) return;
     const r = inp.getBoundingClientRect();
-    dd.style.top = (r.bottom + 2) + 'px';
+    const spaceBelow = window.innerHeight - r.bottom - 10;
+    const maxH = Math.min(420, spaceBelow);
+
+    if (spaceBelow < 150) {
+        // Oben öffnen wenn unten kein Platz
+        dd.style.bottom = (window.innerHeight - r.top + 2) + 'px';
+        dd.style.top = 'auto';
+        dd.style.borderRadius = 'var(--mc-radius-sm) var(--mc-radius-sm) 0 0';
+    } else {
+        dd.style.top = (r.bottom + 2) + 'px';
+        dd.style.bottom = 'auto';
+        dd.style.borderRadius = '0 0 var(--mc-radius-sm) var(--mc-radius-sm)';
+    }
     dd.style.left = r.left + 'px';
     dd.style.width = r.width + 'px';
+    dd.style.maxHeight = maxH + 'px';
 }
 
 function acSelect(item, inputId, ddId) {
