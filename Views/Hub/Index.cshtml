@@ -13,7 +13,7 @@
         <div class="mc-mobility-grid">
 
             <!-- ── Deutsche Bahn ─────────────────────────────────── -->
-            <div class="mc-card" style="padding:0; overflow:hidden; border:none; box-shadow:var(--mc-shadow-lg);">
+            <div class="mc-card" style="padding:0; border:none; box-shadow:var(--mc-shadow-lg);">
                 <div style="background:linear-gradient(135deg,#EC0016,#c4000f); color:#fff; padding:.85rem 1.25rem; display:flex; align-items:center; gap:.75rem;">
                     <div style="width:36px; height:36px; background:rgba(255,255,255,.15); border-radius:8px; display:flex; align-items:center; justify-content:center;">
                         <i class="bi bi-train-front-fill" style="font-size:1.2rem;"></i>
@@ -59,7 +59,7 @@
             </div>
 
             <!-- ── MVG München ───────────────────────────────────── -->
-            <div class="mc-card" style="padding:0; overflow:hidden; border:none; box-shadow:var(--mc-shadow-lg);">
+            <div class="mc-card" style="padding:0; border:none; box-shadow:var(--mc-shadow-lg);">
                 <div style="background:linear-gradient(135deg,#486EBE,#3a5a9e); color:#fff; padding:.85rem 1.25rem; display:flex; align-items:center; gap:.75rem;">
                     <div style="width:36px; height:36px; background:rgba(255,255,255,.15); border-radius:8px; display:flex; align-items:center; justify-content:center;">
                         <i class="bi bi-bus-front-fill" style="font-size:1.2rem;"></i>
@@ -95,7 +95,7 @@
             </div>
 
             <!-- ── Verkehr ───────────────────────────────────────── -->
-            <div class="mc-card" style="padding:0; overflow:hidden; border:none; box-shadow:var(--mc-shadow-lg);">
+            <div class="mc-card" style="padding:0; border:none; box-shadow:var(--mc-shadow-lg);">
                 <div style="background:linear-gradient(135deg,#e6a817,#d49a10); color:#1a1a2e; padding:.85rem 1.25rem; display:flex; align-items:center; gap:.75rem;">
                     <div style="width:36px; height:36px; background:rgba(0,0,0,.1); border-radius:8px; display:flex; align-items:center; justify-content:center;">
                         <i class="bi bi-car-front-fill" style="font-size:1.2rem;"></i>
@@ -124,6 +124,15 @@
         <!-- Wetter Widget -->
         <div class="mc-card" id="weatherWidget">
             <div class="mc-card-header"><i class="bi bi-cloud-sun-fill"></i> Wetter <span id="weatherLocation" style="font-weight:400; font-size:.8rem; color:var(--mc-text-muted); margin-left:auto;"></span></div>
+            <div style="margin-bottom:.75rem; position:relative;">
+                <div style="display:flex; gap:.4rem;">
+                    <input type="text" class="mc-input" id="weatherCity" placeholder="Ort eingeben…" style="font-size:.85rem; padding:.45rem .7rem;" oninput="weatherCityAutocomplete()" onkeydown="if(event.key==='Enter'){event.preventDefault();weatherCitySelect();}" />
+                    <button onclick="weatherCitySelect()" style="padding:.45rem .65rem; border:none; border-radius:var(--mc-radius-sm); background:var(--mc-gold); color:#fff; cursor:pointer; font-size:.8rem; flex-shrink:0;" title="Ort laden">
+                        <i class="bi bi-geo-alt-fill"></i>
+                    </button>
+                </div>
+                <div class="ac-dropdown" id="weatherCityAc" style="z-index:60;"></div>
+            </div>
             <div class="weather-current">
                 <div class="weather-icon" id="weatherIcon">--</div>
                 <div>
@@ -258,7 +267,7 @@
 <style>
 .color-pick{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .2s;}
 .color-pick:hover,.color-pick.active{border-color:var(--mc-gold);transform:scale(1.15);}
-.ac-dropdown{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--mc-surface);border:1px solid var(--mc-border);border-radius:0 0 var(--mc-radius-sm) var(--mc-radius-sm);box-shadow:var(--mc-shadow-lg);max-height:min(400px, 50vh);overflow-y:auto;display:none;}
+.ac-dropdown{position:fixed;z-index:9000;background:var(--mc-surface);border:1px solid var(--mc-border);border-radius:0 0 var(--mc-radius-sm) var(--mc-radius-sm);box-shadow:var(--mc-shadow-lg);max-height:min(420px, 60vh);overflow-y:auto;display:none;}
 .ac-dropdown.open{display:block;}
 .ac-item{padding:.5rem .75rem;cursor:pointer;font-size:.85rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--mc-border);}
 .ac-item:last-child{border-bottom:none;}
@@ -296,6 +305,7 @@ function dbAutocomplete(input, dropdownId) {
     const dd = document.getElementById(dropdownId);
     if (q.length < 1) { dd.classList.remove('open'); return; }
     acTimers[key] = setTimeout(async () => {
+        acPosition(input.id, dropdownId);
         dd.innerHTML = '<div class="ac-item" style="justify-content:center; color:var(--mc-text-muted);"><div class="search-spinner" style="width:18px;height:18px;border-width:2px;"></div></div>';
         dd.classList.add('open');
         try {
@@ -319,6 +329,7 @@ function mvgAutocomplete(input, dropdownId) {
     const dd = document.getElementById(dropdownId);
     if (q.length < 1) { dd.classList.remove('open'); return; }
     acTimers[key] = setTimeout(async () => {
+        acPosition(input.id, dropdownId);
         dd.innerHTML = '<div class="ac-item" style="justify-content:center; color:var(--mc-text-muted);"><div class="search-spinner" style="width:18px;height:18px;border-width:2px;"></div></div>';
         dd.classList.add('open');
         try {
@@ -342,6 +353,16 @@ function mvgAutocomplete(input, dropdownId) {
     }, 200);
 }
 
+function acPosition(inputId, ddId) {
+    const inp = document.getElementById(inputId);
+    const dd = document.getElementById(ddId);
+    if (!inp || !dd) return;
+    const r = inp.getBoundingClientRect();
+    dd.style.top = (r.bottom + 2) + 'px';
+    dd.style.left = r.left + 'px';
+    dd.style.width = r.width + 'px';
+}
+
 function acSelect(item, inputId, ddId) {
     const name = item.querySelector('.ac-name').textContent;
     document.getElementById(inputId).value = name;
@@ -362,51 +383,63 @@ const weatherLabels = {0:'Klar',1:'Leicht bewölkt',2:'Teilweise bewölkt',3:'Be
     71:'Leichter Schnee',73:'Schnee',75:'Starker Schnee',80:'Regenschauer',95:'Gewitter'};
 const dayNames = ['So','Mo','Di','Mi','Do','Fr','Sa'];
 
-async function loadWeather() {
-    let lat = null, lon = null, locationName = null;
-
-    // 1. Browser Geolocation versuchen
-    try {
-        const pos = await new Promise((resolve, reject) => {
-            if (!navigator.geolocation) return reject('no geo');
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, maximumAge: 300000 });
-        });
-        lat = pos.coords.latitude;
-        lon = pos.coords.longitude;
-    } catch {}
-
-    // 2. Fallback: IP-basierte Geolocation
-    if (!lat) {
+// ═══ Wetter-Ort Auswahl ═══════════════════════════════════════════════════════
+let weatherCityTimer = null;
+function weatherCityAutocomplete() {
+    clearTimeout(weatherCityTimer);
+    const q = document.getElementById('weatherCity').value.trim();
+    const dd = document.getElementById('weatherCityAc');
+    if (q.length < 2) { dd.classList.remove('open'); return; }
+    weatherCityTimer = setTimeout(async () => {
+        const inp = document.getElementById('weatherCity');
+        acPosition('weatherCity', 'weatherCityAc');
+        dd.innerHTML = '<div class="ac-item" style="justify-content:center;"><div class="search-spinner" style="width:16px;height:16px;border-width:2px;"></div></div>';
+        dd.classList.add('open');
         try {
-            const ipResp = await fetch('https://ipapi.co/json/');
-            const ipData = await ipResp.json();
-            if (ipData.latitude && ipData.longitude) {
-                lat = ipData.latitude;
-                lon = ipData.longitude;
-                locationName = ipData.city || ipData.region || null;
-            }
-        } catch {}
-    }
+            const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=de`);
+            const data = await r.json();
+            if (!data.results?.length) { dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted);justify-content:center;">Kein Ort gefunden</div>'; return; }
+            dd.innerHTML = data.results.map(c =>
+                `<div class="ac-item" onmousedown="event.preventDefault();" onclick="weatherLoadCity(${c.latitude},${c.longitude},'${escH(c.name)}')">
+                    <i class="bi bi-geo-alt-fill" style="color:var(--mc-gold); flex-shrink:0;"></i>
+                    <span class="ac-name">${escH(c.name)}</span>
+                    <span style="font-size:.75rem; color:var(--mc-text-muted); margin-left:auto;">${escH(c.admin1 || c.country || '')}</span>
+                </div>`
+            ).join('');
+        } catch { dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted);justify-content:center;">Fehler</div>'; }
+    }, 250);
+}
 
-    // 3. Fallback: München
-    if (!lat) { lat = 48.1371; lon = 11.5754; locationName = 'München (Standard)'; }
+function weatherCitySelect() {
+    const q = document.getElementById('weatherCity').value.trim();
+    if (!q) return;
+    document.getElementById('weatherCityAc').classList.remove('open');
+    // Geocode und laden
+    fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=de`)
+        .then(r => r.json()).then(data => {
+            if (data.results?.length) weatherLoadCity(data.results[0].latitude, data.results[0].longitude, data.results[0].name);
+        });
+}
 
+function weatherLoadCity(lat, lon, name) {
+    document.getElementById('weatherCity').value = name;
+    document.getElementById('weatherCityAc').classList.remove('open');
+    document.getElementById('weatherLocation').textContent = name;
+    localStorage.setItem('mh-weather-lat', lat);
+    localStorage.setItem('mh-weather-lon', lon);
+    localStorage.setItem('mh-weather-name', name);
+    fetchWeatherData(lat, lon, name);
+}
+
+async function fetchWeatherData(lat, lon, locationName) {
     try {
         const r = await fetch(`/api/Weather?lat=${lat}&lon=${lon}`);
         const d = await r.json();
-        document.getElementById('weatherTemp').textContent = Math.round(d.current.temperature_2m) + '°C';
+        document.getElementById('weatherTemp').textContent = Math.round(d.current.temperature_2m) + '\u00b0C';
         const code = d.current.weather_code;
         document.getElementById('weatherIcon').innerHTML = `<i class="${weatherCodes[code]||'bi-cloud'}"></i>`;
         document.getElementById('weatherDesc').textContent = weatherLabels[code] || 'Unbekannt';
-
-        if (!locationName) {
-            try {
-                const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
-                const gd = await geo.json();
-                locationName = gd.address?.city || gd.address?.town || gd.address?.village || '';
-            } catch {}
-        }
-        document.getElementById('weatherLocation').textContent = locationName || '';
+        if (locationName) document.getElementById('weatherLocation').textContent = locationName;
 
         const fc = document.getElementById('weatherForecast');
         fc.innerHTML = '';
@@ -415,10 +448,56 @@ async function loadWeather() {
             fc.innerHTML += `<div class="weather-day">
                 <div>${dayNames[dt.getDay()]}</div>
                 <div class="weather-day-icon"><i class="${weatherCodes[d.daily.weather_code[i]]||'bi-cloud'}"></i></div>
-                <div class="weather-day-temps"><span class="hi">${Math.round(d.daily.temperature_2m_max[i])}°</span><span class="lo">${Math.round(d.daily.temperature_2m_min[i])}°</span></div>
+                <div class="weather-day-temps"><span class="hi">${Math.round(d.daily.temperature_2m_max[i])}\u00b0</span><span class="lo">${Math.round(d.daily.temperature_2m_min[i])}\u00b0</span></div>
             </div>`;
         }
     } catch { document.getElementById('weatherDesc').textContent = 'Fehler beim Laden'; }
+}
+
+async function loadWeather() {
+    // Gespeicherten Ort prüfen
+    const savedLat = localStorage.getItem('mh-weather-lat');
+    const savedLon = localStorage.getItem('mh-weather-lon');
+    const savedName = localStorage.getItem('mh-weather-name');
+    if (savedLat && savedLon) {
+        document.getElementById('weatherCity').value = savedName || '';
+        fetchWeatherData(parseFloat(savedLat), parseFloat(savedLon), savedName);
+        return;
+    }
+
+    let lat = null, lon = null, locationName = null;
+
+    try {
+        const pos = await new Promise((resolve, reject) => {
+            if (!navigator.geolocation) return reject('no geo');
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, maximumAge: 300000 });
+        });
+        lat = pos.coords.latitude; lon = pos.coords.longitude;
+    } catch {}
+
+    if (!lat) {
+        try {
+            const ip = await fetch('https://ipapi.co/json/');
+            const d = await ip.json();
+            if (d.latitude) { lat = d.latitude; lon = d.longitude; locationName = d.city || null; }
+        } catch {}
+    }
+
+    if (!lat) { lat = 48.1371; lon = 11.5754; locationName = 'München'; }
+
+    if (!locationName) {
+        try {
+            const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+            const gd = await geo.json();
+            locationName = gd.address?.city || gd.address?.town || gd.address?.village || '';
+        } catch {}
+    }
+
+    document.getElementById('weatherCity').value = locationName || '';
+    localStorage.setItem('mh-weather-lat', lat);
+    localStorage.setItem('mh-weather-lon', lon);
+    if (locationName) localStorage.setItem('mh-weather-name', locationName);
+    fetchWeatherData(lat, lon, locationName);
 }
 loadWeather();
 
