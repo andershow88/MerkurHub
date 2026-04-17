@@ -36,10 +36,7 @@ public class AiAssistentController : Controller
 
         try
         {
-            var messages = new List<object>
-            {
-                new { role = "system", content = SystemPrompt }
-            };
+            var messages = new List<object> { new { role = "system", content = SystemPrompt } };
 
             if (anfrage.verlauf is { Count: > 0 })
                 foreach (var n in anfrage.verlauf.TakeLast(10))
@@ -51,8 +48,10 @@ public class AiAssistentController : Controller
             {
                 model = "gpt-4o-mini",
                 max_tokens = 1500,
-                temperature = 0.4,
-                messages
+                temperature = 0.3,
+                messages,
+                tools = ToolDefinitionen(),
+                tool_choice = "auto"
             };
 
             var client = _httpFactory.CreateClient();
@@ -71,12 +70,29 @@ public class AiAssistentController : Controller
             }
 
             using var doc = JsonDocument.Parse(body);
-            var antwort = doc.RootElement
-                .GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString() ?? string.Empty;
+            var choice = doc.RootElement.GetProperty("choices")[0];
+            var finishReason = choice.GetProperty("finish_reason").GetString();
+            var message = choice.GetProperty("message");
 
+            // Tool-Call erkannt -> Frontend soll Suche ausloesen
+            if (finishReason == "tool_calls" && message.TryGetProperty("tool_calls", out var toolCalls))
+            {
+                var tc = toolCalls[0];
+                var funcName = tc.GetProperty("function").GetProperty("name").GetString()!;
+                var funcArgs = tc.GetProperty("function").GetProperty("arguments").GetString()!;
+                var args = JsonDocument.Parse(funcArgs).RootElement;
+
+                return Json(new
+                {
+                    toolCall = new
+                    {
+                        funktion = funcName,
+                        parameter = args
+                    }
+                });
+            }
+
+            var antwort = message.GetProperty("content").GetString() ?? string.Empty;
             return Json(new { antwort });
         }
         catch (Exception ex)
@@ -86,21 +102,89 @@ public class AiAssistentController : Controller
         }
     }
 
+    private static object[] ToolDefinitionen() => new object[]
+    {
+        new
+        {
+            type = "function",
+            function = new
+            {
+                name = "bahn_suchen",
+                description = "Sucht Zugverbindungen der Deutschen Bahn zwischen zwei Orten. Nutze dies wenn der Benutzer nach Zuegen, Bahnverbindungen, ICE, IC oder Zugfahrten fragt.",
+                parameters = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["von"] = new { type = "string", description = "Abfahrtsbahnhof oder Stadt (z.B. 'Muenchen Hbf')" },
+                        ["nach"] = new { type = "string", description = "Zielbahnhof oder Stadt (z.B. 'Berlin Hbf')" },
+                        ["datum"] = new { type = "string", description = "Reisedatum im Format YYYY-MM-DD (optional, Standard: heute)" },
+                        ["uhrzeit"] = new { type = "string", description = "Gewuenschte Abfahrtszeit im Format HH:MM (optional, Standard: jetzt)" },
+                        ["erste_klasse"] = new { type = "boolean", description = "true fuer 1. Klasse, false fuer 2. Klasse (Standard: false)" }
+                    },
+                    required = new[] { "von", "nach" }
+                }
+            }
+        },
+        new
+        {
+            type = "function",
+            function = new
+            {
+                name = "mvg_suchen",
+                description = "Sucht OEPNV-Verbindungen in Muenchen (U-Bahn, S-Bahn, Tram, Bus). Nutze dies wenn der Benutzer nach MVG, Muenchner Nahverkehr, U-Bahn, S-Bahn, Tram oder Bus fragt.",
+                parameters = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["von"] = new { type = "string", description = "Abfahrtshaltestelle (z.B. 'Marienplatz')" },
+                        ["nach"] = new { type = "string", description = "Zielhaltestelle (z.B. 'Muenchen Ost')" },
+                        ["uhrzeit"] = new { type = "string", description = "Gewuenschte Abfahrtszeit HH:MM (optional)" }
+                    },
+                    required = new[] { "von", "nach" }
+                }
+            }
+        },
+        new
+        {
+            type = "function",
+            function = new
+            {
+                name = "verkehr_pruefen",
+                description = "Prueft die aktuelle Verkehrslage/Stau auf einer Strecke (Autobahn). Nutze dies wenn der Benutzer nach Stau, Verkehr, Baustellen oder Autobahn fragt.",
+                parameters = new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["von"] = new { type = "string", description = "Startort (z.B. 'Muenchen')" },
+                        ["nach"] = new { type = "string", description = "Zielort (z.B. 'Stuttgart')" }
+                    },
+                    required = new[] { "von", "nach" }
+                }
+            }
+        }
+    };
+
     private const string SystemPrompt = """
         Du bist der KI-Assistent von MerkurHub, dem internen Portal der Merkur Privatbank KGaA.
 
-        Du hilfst Mitarbeitern bei allgemeinen Fragen zu:
+        Du hilfst Mitarbeitern bei:
+        - Zugverbindungen suchen (Deutsche Bahn) -> nutze die Funktion bahn_suchen
+        - OEPNV-Verbindungen in Muenchen (MVG) -> nutze die Funktion mvg_suchen
+        - Verkehrslage/Stau pruefen -> nutze die Funktion verkehr_pruefen
         - Bankfachlichen Themen (Kredit, Leasing, Bautraeger, Wertpapier, Compliance)
-        - Kennzahlen und KPIs (Kernkapital, Grosskreditobergrenze, AuM, Obligo)
-        - Internen Prozessen und Ablaeufen
-        - IT und Digitalisierung
+        - Kennzahlen und KPIs
         - Allgemeinen Wissensfragen im Bankkontext
 
         Regeln:
-        - Antworte auf Deutsch, praezise, freundlich und strukturiert.
-        - Verwende Markdown (Listen, Fettdruck, Ueberschriften).
-        - Wenn du etwas nicht weisst, sage es ehrlich.
-        - Erfinde keine konkreten Zahlen oder Fakten.
-        - Halte Antworten kompakt (max. 300 Woerter), es sei denn der Nutzer fragt ausdruecklich nach Details.
+        - Antworte auf Deutsch.
+        - Wenn der Benutzer nach Zuegen, Bahn, Fahrplan, Verbindungen fragt -> rufe bahn_suchen auf.
+        - Wenn der Benutzer nach U-Bahn, S-Bahn, MVG, Tram, Bus in Muenchen fragt -> rufe mvg_suchen auf.
+        - Wenn der Benutzer nach Stau, Verkehr, Autobahn, Baustellen fragt -> rufe verkehr_pruefen auf.
+        - Fuer Datums-/Zeitangaben: interpretiere relative Ausdruecke (morgen, uebermorgen, heute Abend, um 14 Uhr).
+        - Heute ist der aktuelle Tag. Verwende ISO-Format fuer Datum (YYYY-MM-DD) und 24h-Format fuer Uhrzeit (HH:MM).
+        - Halte textuelle Antworten kompakt.
         """;
 }

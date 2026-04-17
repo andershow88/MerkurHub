@@ -407,6 +407,10 @@ if (ragH) {
 
             if (data.error) {
                 aiNachrichtAnzeigen('assistant', '**Fehler:** ' + data.error);
+            } else if (data.toolCall) {
+                // KI will eine Suche ausloesen -> ans Frontend delegieren
+                aiVerlauf.push({ rolle: 'user', text: frage });
+                aiToolCallAusfuehren(data.toolCall, frage);
             } else {
                 const antwort = data.antwort || '(leere Antwort)';
                 aiNachrichtAnzeigen('assistant', antwort);
@@ -422,6 +426,109 @@ if (ragH) {
             if (btn) btn.disabled = false;
             document.getElementById('aiInput')?.focus();
         }
+    }
+
+    async function aiToolCallAusfuehren(toolCall, frage) {
+        const fn = toolCall.funktion;
+        const p = toolCall.parameter;
+
+        if (fn === 'bahn_suchen') {
+            const von = p.von || '';
+            const nach = p.nach || '';
+            const datum = p.datum || '';
+            const uhrzeit = p.uhrzeit || '';
+            const ersteKlasse = p.erste_klasse || false;
+
+            aiNachrichtAnzeigen('assistant', `Suche Zugverbindungen: **${von}** → **${nach}**` +
+                (datum ? ` am ${datum}` : '') + (uhrzeit ? ` um ${uhrzeit}` : '') +
+                (ersteKlasse ? ' (1. Klasse)' : '') + '\n\nErgebnisse werden im Suchfenster angezeigt...');
+
+            // Felder im Hub befuellen
+            const bahnFrom = document.getElementById('bahnFrom');
+            const bahnTo = document.getElementById('bahnTo');
+            if (bahnFrom) bahnFrom.value = von;
+            if (bahnTo) bahnTo.value = nach;
+            if (datum) { const df = document.getElementById('bahnDate'); if (df) df.value = datum; }
+            if (uhrzeit) { const tf = document.getElementById('bahnTime'); if (tf) tf.value = uhrzeit; }
+            if (ersteKlasse) { const kl = document.getElementById('bahnKlasse'); if (kl) kl.value = '1'; }
+
+            // Suche ausloesen (nutzt die existierende Funktion aus Hub/Index)
+            if (typeof bahnSuchen === 'function') {
+                await bahnSuchen();
+            } else {
+                // Fallback: direkte API-Abfrage und Modal oeffnen
+                try {
+                    const url = `/api/BahnSearch?from=${encodeURIComponent(von)}&to=${encodeURIComponent(nach)}&date=${datum}&time=${uhrzeit}&ersteKlasse=${ersteKlasse}`;
+                    const r = await fetch(url);
+                    const data = await r.json();
+                    let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-train-front"></i> ${von} → ${nach}</div>`;
+                    html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;"><thead><tr style="border-bottom:2px solid var(--mc-border);text-align:left;"><th style="padding:.5rem;">Abfahrt</th><th>Ankunft</th><th>Dauer</th><th>Umst.</th><th>Züge</th><th>Preis</th></tr></thead><tbody>';
+                    data.forEach(c => { html += `<tr style="border-bottom:1px solid var(--mc-border);"><td style="padding:.5rem;font-weight:600;">${c.abfahrt}</td><td>${c.ankunft}</td><td>${c.dauer}</td><td>${c.umstiege}</td><td style="font-size:.8rem;">${c.zuege}</td><td style="color:var(--mc-petrol);font-weight:600;">${c.preis}</td></tr>`; });
+                    html += '</tbody></table>';
+                    if (typeof showResult === 'function') showResult('Deutsche Bahn — Verbindungen', html);
+                } catch {}
+            }
+        }
+        else if (fn === 'mvg_suchen') {
+            const von = p.von || '';
+            const nach = p.nach || '';
+            const uhrzeit = p.uhrzeit || '';
+
+            aiNachrichtAnzeigen('assistant', `Suche MVG-Verbindungen: **${von}** → **${nach}**` +
+                (uhrzeit ? ` um ${uhrzeit}` : '') + '\n\nErgebnisse werden im Suchfenster angezeigt...');
+
+            const mvgFrom = document.getElementById('mvgFrom');
+            const mvgTo = document.getElementById('mvgTo');
+            if (mvgFrom) mvgFrom.value = von;
+            if (mvgTo) mvgTo.value = nach;
+            if (uhrzeit) { const tf = document.getElementById('mvgTime'); if (tf) tf.value = uhrzeit; }
+
+            if (typeof mvgSuchen === 'function') {
+                await mvgSuchen();
+            } else {
+                try {
+                    const r = await fetch(`/api/MvgSearch?from=${encodeURIComponent(von)}&to=${encodeURIComponent(nach)}&time=${uhrzeit}`);
+                    const data = await r.json();
+                    let html = `<div style="margin-bottom:.75rem;"><i class="bi bi-bus-front"></i> ${von} → ${nach}</div>`;
+                    html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;"><thead><tr style="border-bottom:2px solid var(--mc-border);"><th style="padding:.5rem;">Abfahrt</th><th>Ankunft</th><th>Linie</th><th>Richtung</th><th>Dauer</th></tr></thead><tbody>';
+                    data.forEach(c => { html += `<tr style="border-bottom:1px solid var(--mc-border);"><td style="padding:.5rem;font-weight:600;">${c.abfahrt}</td><td>${c.ankunft||''}</td><td>${c.linie}</td><td>${c.richtung}</td><td>${c.dauer}</td></tr>`; });
+                    html += '</tbody></table>';
+                    if (typeof showResult === 'function') showResult('MVG München — Verbindungen', html);
+                } catch {}
+            }
+        }
+        else if (fn === 'verkehr_pruefen') {
+            const von = p.von || '';
+            const nach = p.nach || '';
+
+            aiNachrichtAnzeigen('assistant', `Prüfe Verkehrslage: **${von}** → **${nach}**\n\nErgebnisse werden im Suchfenster angezeigt...`);
+
+            const tFrom = document.getElementById('trafficFrom');
+            const tTo = document.getElementById('trafficTo');
+            if (tFrom) tFrom.value = von;
+            if (tTo) tTo.value = nach;
+
+            if (typeof verkehrSuchen === 'function') {
+                await verkehrSuchen();
+            } else {
+                try {
+                    const r = await fetch(`/api/Traffic?from=${encodeURIComponent(von)}&to=${encodeURIComponent(nach)}`);
+                    const d = await r.json();
+                    const statusColor = d.status === 'frei' ? 'var(--mc-success)' : d.status === 'stau' ? 'var(--mc-danger)' : 'var(--mc-warning)';
+                    let html = `<div style="font-size:1.1rem;font-weight:600;margin-bottom:.5rem;">${d.strecke}</div><div style="color:${statusColor};font-weight:600;text-transform:uppercase;margin-bottom:1rem;">${d.status} — ${d.dauer}</div>`;
+                    if (d.staus?.length) { html += '<strong>Staus:</strong><ul>'; d.staus.forEach(s => html += `<li>${s}</li>`); html += '</ul>'; }
+                    if (d.baustellen?.length) { html += '<strong>Baustellen:</strong><ul>'; d.baustellen.forEach(s => html += `<li>${s}</li>`); html += '</ul>'; }
+                    if (d.hinweise?.length) { html += '<strong>Hinweise:</strong><ul>'; d.hinweise.forEach(s => html += `<li>${s}</li>`); html += '</ul>'; }
+                    if (typeof showResult === 'function') showResult('Verkehrslage', html);
+                } catch {}
+            }
+        }
+        else {
+            aiNachrichtAnzeigen('assistant', 'Diese Funktion ist noch nicht verfügbar.');
+        }
+
+        aiVerlauf.push({ rolle: 'assistant', text: `[Suche ausgeführt: ${fn}]` });
+        if (aiVerlauf.length > 10) aiVerlauf = aiVerlauf.slice(-10);
     }
 
     function aiNachrichtAnzeigen(rolle, text) {
