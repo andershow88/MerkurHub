@@ -418,7 +418,7 @@ public class ApiController : Controller
             var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(8);
             var resp = await client.GetStringAsync(
-                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(q)}&results=8&stops=true&addresses=false&poi=false");
+                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(q)}&results=15&stops=true&addresses=false&poi=false");
             using var doc = JsonDocument.Parse(resp);
             var results = new List<object>();
             foreach (var s in doc.RootElement.EnumerateArray())
@@ -445,7 +445,7 @@ public class ApiController : Controller
             var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(8);
             var resp = await client.GetStringAsync(
-                $"https://www.mvg.de/api/bgw-pt/v3/locations?query={Uri.EscapeDataString(q)}&limit=8");
+                $"https://www.mvg.de/api/bgw-pt/v3/locations?query={Uri.EscapeDataString(q)}&limit=15");
             using var doc = JsonDocument.Parse(resp);
             var results = new List<object>();
             foreach (var s in doc.RootElement.EnumerateArray())
