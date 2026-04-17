@@ -186,10 +186,8 @@ img {
    ---------------------------------------------------------- */
 .mc-main {
     margin-top: var(--mc-topbar-h);
-    padding: clamp(0.75rem, 2vw, 1.5rem);
-    max-width: 1600px;
-    margin-left: auto;
-    margin-right: auto;
+    padding: clamp(0.75rem, 2vw, 2rem) clamp(1rem, 3vw, 3rem);
+    max-width: 100%;
     width: 100%;
 }
 
@@ -742,7 +740,7 @@ textarea.mc-input {
    20. Responsive
    ---------------------------------------------------------- */
 @media (min-width: 1600px) {
-    .mc-main { max-width: 1800px; }
+    .mc-main { padding: 2rem 4rem; }
     .mc-kpi-value { font-size: clamp(1.5rem, 2vw, 2.25rem); }
     .mc-card { padding: clamp(1.25rem, 1.5vw, 1.75rem); }
     .mc-section-title { font-size: clamp(1.1rem, 1.2vw, 1.4rem); }
