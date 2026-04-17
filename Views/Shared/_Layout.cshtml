@@ -30,6 +30,12 @@
     </div>
 
     <div class="mc-topbar-right">
+        <span style="font-size:.825rem; color:var(--mc-text-muted); display:flex; align-items:center; gap:.35rem;">
+            <i class="bi bi-clock"></i>
+            <span id="deClock"></span>
+            <span style="margin-left:.35rem;"><i class="bi bi-calendar3"></i></span>
+            <span id="deDate"></span>
+        </span>
         <span class="mc-topbar-user d-none-sm">
             <i class="bi bi-person-circle"></i> @userName
         </span>
@@ -65,6 +71,16 @@
         const i = document.getElementById('themeIcon');
         if (i) i.className = t === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
     }
+
+    // Deutsche Zeit (Europe/Berlin)
+    function updateDeClock() {
+        const now = new Date();
+        const opts = { timeZone: 'Europe/Berlin' };
+        document.getElementById('deClock').textContent = now.toLocaleTimeString('de-DE', { ...opts, hour: '2-digit', minute: '2-digit' });
+        document.getElementById('deDate').textContent = now.toLocaleDateString('de-DE', { ...opts, day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+    updateDeClock();
+    setInterval(updateDeClock, 30000);
 </script>
 <!-- ===== KI-Assistent FAB ===== -->
 <button id="aiFab" onclick="aiOeffnen()" title="KI-Assistent"

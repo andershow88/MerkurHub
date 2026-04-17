@@ -11,34 +11,84 @@
 
         <!-- Mobilität -->
         <div class="mc-mobility-grid">
-            <!-- Deutsche Bahn -->
-            <div class="mc-card">
-                <div class="mc-card-header"><i class="bi bi-train-front"></i> Deutsche Bahn</div>
-                <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
-                    <input type="text" class="mc-input" id="bahnFrom" placeholder="Von (z.B. München Hbf)" style="flex:1; min-width:120px;" />
-                    <input type="text" class="mc-input" id="bahnTo" placeholder="Nach (z.B. Berlin Hbf)" style="flex:1; min-width:120px;" />
-                    <input type="date" class="mc-input" id="bahnDate" style="width:150px;" />
-                    <button class="btn-mc btn-mc-primary" onclick="bahnSuchen()"><i class="bi bi-search"></i> Suchen</button>
+
+            <!-- ── Deutsche Bahn ─────────────────────────────────── -->
+            <div class="mc-card" style="padding:0; overflow:hidden;">
+                <div style="background:#EC0016; color:#fff; padding:.65rem 1rem; display:flex; align-items:center; gap:.6rem;">
+                    <i class="bi bi-train-front-fill" style="font-size:1.1rem;"></i>
+                    <strong style="font-size:.95rem;">Deutsche Bahn</strong>
+                    <span style="margin-left:auto; font-size:.7rem; opacity:.8;">Verbindungen suchen</span>
+                </div>
+                <div style="padding:1rem; display:flex; flex-direction:column; gap:.6rem;">
+                    <div style="display:flex; gap:.5rem; align-items:start;">
+                        <div style="flex:1; position:relative;">
+                            <div style="display:flex; align-items:center; gap:.4rem; margin-bottom:.2rem;">
+                                <span style="background:#EC0016; color:#fff; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.6rem; font-weight:700;">A</span>
+                                <span style="font-size:.75rem; color:var(--mc-text-muted);">Von</span>
+                            </div>
+                            <input type="text" class="mc-input" id="bahnFrom" placeholder="Bahnhof / Stadt" autocomplete="off" oninput="dbAutocomplete(this,'bahnFromAc')" onfocus="dbAutocomplete(this,'bahnFromAc')" />
+                            <div class="ac-dropdown" id="bahnFromAc"></div>
+                        </div>
+                        <div style="flex:1; position:relative;">
+                            <div style="display:flex; align-items:center; gap:.4rem; margin-bottom:.2rem;">
+                                <span style="background:#EC0016; color:#fff; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.6rem; font-weight:700;">B</span>
+                                <span style="font-size:.75rem; color:var(--mc-text-muted);">Nach</span>
+                            </div>
+                            <input type="text" class="mc-input" id="bahnTo" placeholder="Bahnhof / Stadt" autocomplete="off" oninput="dbAutocomplete(this,'bahnToAc')" onfocus="dbAutocomplete(this,'bahnToAc')" />
+                            <div class="ac-dropdown" id="bahnToAc"></div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:.5rem; align-items:end;">
+                        <div style="flex:1;">
+                            <span style="font-size:.75rem; color:var(--mc-text-muted);">Datum</span>
+                            <input type="date" class="mc-input" id="bahnDate" />
+                        </div>
+                        <button onclick="bahnSuchen()" style="padding:.55rem 1.25rem; border:none; border-radius:var(--mc-radius-sm); background:#EC0016; color:#fff; font-weight:600; cursor:pointer; font-size:.875rem; white-space:nowrap;">
+                            <i class="bi bi-search"></i> Suchen
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- MVG München -->
-            <div class="mc-card">
-                <div class="mc-card-header"><i class="bi bi-bus-front"></i> MVG München</div>
-                <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
-                    <input type="text" class="mc-input" id="mvgFrom" placeholder="Von" style="flex:1; min-width:140px;" />
-                    <input type="text" class="mc-input" id="mvgTo" placeholder="Nach" style="flex:1; min-width:140px;" />
-                    <button class="btn-mc btn-mc-primary" onclick="mvgSuchen()"><i class="bi bi-search"></i></button>
+            <!-- ── MVG München ───────────────────────────────────── -->
+            <div class="mc-card" style="padding:0; overflow:hidden;">
+                <div style="background:#486EBE; color:#fff; padding:.65rem 1rem; display:flex; align-items:center; gap:.6rem;">
+                    <i class="bi bi-bus-front-fill" style="font-size:1.1rem;"></i>
+                    <strong style="font-size:.95rem;">MVG München</strong>
+                    <span style="margin-left:auto; font-size:.7rem; opacity:.8;">Abfahrten &amp; Verbindungen</span>
+                </div>
+                <div style="padding:1rem; display:flex; flex-direction:column; gap:.6rem;">
+                    <div style="display:flex; gap:.5rem;">
+                        <div style="flex:1; position:relative;">
+                            <span style="font-size:.75rem; color:var(--mc-text-muted);">Abfahrt</span>
+                            <input type="text" class="mc-input" id="mvgFrom" placeholder="Haltestelle / Adresse" autocomplete="off" oninput="mvgAutocomplete(this,'mvgFromAc')" onfocus="mvgAutocomplete(this,'mvgFromAc')" />
+                            <div class="ac-dropdown" id="mvgFromAc"></div>
+                        </div>
+                        <div style="flex:1; position:relative;">
+                            <span style="font-size:.75rem; color:var(--mc-text-muted);">Ziel</span>
+                            <input type="text" class="mc-input" id="mvgTo" placeholder="Haltestelle / Adresse" autocomplete="off" oninput="mvgAutocomplete(this,'mvgToAc')" onfocus="mvgAutocomplete(this,'mvgToAc')" />
+                            <div class="ac-dropdown" id="mvgToAc"></div>
+                        </div>
+                    </div>
+                    <button onclick="mvgSuchen()" style="padding:.55rem 1rem; border:none; border-radius:var(--mc-radius-sm); background:#486EBE; color:#fff; font-weight:600; cursor:pointer; font-size:.875rem; width:100%;">
+                        <i class="bi bi-search"></i> Verbindung suchen
+                    </button>
                 </div>
             </div>
 
-            <!-- Verkehr -->
-            <div class="mc-card">
-                <div class="mc-card-header"><i class="bi bi-car-front-fill"></i> Verkehrslage</div>
-                <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
-                    <input type="text" class="mc-input" id="trafficFrom" placeholder="Startort" style="flex:1; min-width:140px;" />
-                    <input type="text" class="mc-input" id="trafficTo" placeholder="Zielort" style="flex:1; min-width:140px;" />
-                    <button class="btn-mc btn-mc-primary" onclick="verkehrSuchen()"><i class="bi bi-search"></i></button>
+            <!-- ── Verkehr ───────────────────────────────────────── -->
+            <div class="mc-card" style="padding:0; overflow:hidden;">
+                <div style="background:#e6a817; color:#1a1a2e; padding:.65rem 1rem; display:flex; align-items:center; gap:.6rem;">
+                    <i class="bi bi-car-front-fill" style="font-size:1.1rem;"></i>
+                    <strong style="font-size:.95rem;">Verkehrslage</strong>
+                    <span style="margin-left:auto; font-size:.7rem; opacity:.7;">Autobahn-Meldungen</span>
+                </div>
+                <div style="padding:1rem; display:flex; gap:.5rem; flex-wrap:wrap;">
+                    <input type="text" class="mc-input" id="trafficFrom" placeholder="Startort (z.B. München)" style="flex:1; min-width:120px;" />
+                    <input type="text" class="mc-input" id="trafficTo" placeholder="Zielort (z.B. Stuttgart)" style="flex:1; min-width:120px;" />
+                    <button onclick="verkehrSuchen()" style="padding:.55rem 1rem; border:none; border-radius:var(--mc-radius-sm); background:#e6a817; color:#1a1a2e; font-weight:600; cursor:pointer; font-size:.875rem;">
+                        <i class="bi bi-search"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -177,7 +227,17 @@
         </div>
     </div>
 </div>
-<style>.color-pick{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .2s;}.color-pick:hover,.color-pick.active{border-color:var(--mc-gold);transform:scale(1.15);}</style>
+<style>
+.color-pick{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .2s;}
+.color-pick:hover,.color-pick.active{border-color:var(--mc-gold);transform:scale(1.15);}
+.ac-dropdown{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--mc-surface);border:1px solid var(--mc-border);border-radius:0 0 var(--mc-radius-sm) var(--mc-radius-sm);box-shadow:var(--mc-shadow-lg);max-height:220px;overflow-y:auto;display:none;}
+.ac-dropdown.open{display:block;}
+.ac-item{padding:.5rem .75rem;cursor:pointer;font-size:.85rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid var(--mc-border);}
+.ac-item:last-child{border-bottom:none;}
+.ac-item:hover{background:rgba(200,169,110,0.1);}
+.ac-item .ac-name{font-weight:500;}
+.ac-item .ac-badge{font-size:.65rem;padding:1px 5px;border-radius:3px;font-weight:600;color:#fff;}
+</style>
 
 <!-- Ergebnis-Modal -->
 <div class="mc-modal-overlay" id="resultModal">
@@ -192,6 +252,70 @@
 
 @section Scripts {
 <script>
+// ═══ Autocomplete ═════════════════════════════════════════════════════════════
+let acTimer = null;
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.ac-dropdown') && !e.target.closest('.mc-input'))
+        document.querySelectorAll('.ac-dropdown').forEach(d => d.classList.remove('open'));
+});
+
+function dbAutocomplete(input, dropdownId) {
+    clearTimeout(acTimer);
+    const q = input.value.trim();
+    const dd = document.getElementById(dropdownId);
+    if (q.length < 2) { dd.classList.remove('open'); return; }
+    acTimer = setTimeout(async () => {
+        try {
+            const r = await fetch('/api/BahnStationen?q=' + encodeURIComponent(q));
+            const data = await r.json();
+            if (!data.length) { dd.classList.remove('open'); return; }
+            dd.innerHTML = data.map(s =>
+                `<div class="ac-item" onclick="acSelect(this,'${input.id}','${dropdownId}')">
+                    <i class="bi bi-geo-alt" style="color:#EC0016;"></i>
+                    <span class="ac-name">${escH(s.name)}</span>
+                </div>`
+            ).join('');
+            dd.classList.add('open');
+        } catch { dd.classList.remove('open'); }
+    }, 300);
+}
+
+function mvgAutocomplete(input, dropdownId) {
+    clearTimeout(acTimer);
+    const q = input.value.trim();
+    const dd = document.getElementById(dropdownId);
+    if (q.length < 2) { dd.classList.remove('open'); return; }
+    acTimer = setTimeout(async () => {
+        try {
+            const r = await fetch('/api/MvgStationen?q=' + encodeURIComponent(q));
+            const data = await r.json();
+            if (!data.length) { dd.classList.remove('open'); return; }
+            dd.innerHTML = data.map(s => {
+                const types = (s.types || '').split(',').filter(Boolean);
+                const badges = types.map(t => {
+                    const col = t === 'UBAHN' ? '#006CB7' : t === 'SBAHN' ? '#408335' : t === 'TRAM' ? '#D4002A' : t === 'BUS' ? '#00586A' : '#486EBE';
+                    return `<span class="ac-badge" style="background:${col};">${t.replace('BAHN','')}</span>`;
+                }).join(' ');
+                const label = s.place ? s.name + ', ' + s.place : s.name;
+                return `<div class="ac-item" onclick="acSelect(this,'${input.id}','${dropdownId}')">
+                    <i class="bi bi-geo-alt" style="color:#486EBE;"></i>
+                    <span class="ac-name">${escH(label)}</span>
+                    <span style="margin-left:auto;">${badges}</span>
+                </div>`;
+            }).join('');
+            dd.classList.add('open');
+        } catch { dd.classList.remove('open'); }
+    }, 300);
+}
+
+function acSelect(item, inputId, ddId) {
+    const name = item.querySelector('.ac-name').textContent;
+    document.getElementById(inputId).value = name;
+    document.getElementById(ddId).classList.remove('open');
+}
+
+function escH(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
 // ═══ Wetter ═══════════════════════════════════════════════════════════════════
 const weatherCodes = {0:'bi-sun-fill',1:'bi-cloud-sun',2:'bi-cloud-sun',3:'bi-clouds',45:'bi-cloud-fog',48:'bi-cloud-fog',
     51:'bi-cloud-drizzle',53:'bi-cloud-drizzle',55:'bi-cloud-drizzle',

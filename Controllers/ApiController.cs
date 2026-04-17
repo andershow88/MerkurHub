@@ -366,6 +366,65 @@ public class ApiController : Controller
         }
     }
 
+    // ── Autocomplete: DB Stationen ──────────────────────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> BahnStationen(string q)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+            return Json(Array.Empty<object>());
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(5);
+            var resp = await client.GetStringAsync(
+                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(q)}&results=6&stops=true&addresses=false&poi=false");
+            using var doc = JsonDocument.Parse(resp);
+            var results = new List<object>();
+            foreach (var s in doc.RootElement.EnumerateArray())
+            {
+                var name = s.TryGetProperty("name", out var n) ? n.GetString() : null;
+                var id = s.TryGetProperty("id", out var i) ? i.GetString() : null;
+                if (name != null && id != null)
+                    results.Add(new { id, name });
+            }
+            return Json(results);
+        }
+        catch { return Json(Array.Empty<object>()); }
+    }
+
+    // ── Autocomplete: MVG Stationen ─────────────────────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> MvgStationen(string q)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+            return Json(Array.Empty<object>());
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(5);
+            var resp = await client.GetStringAsync(
+                $"https://www.mvg.de/api/bgw-pt/v3/locations?query={Uri.EscapeDataString(q)}&limit=6");
+            using var doc = JsonDocument.Parse(resp);
+            var results = new List<object>();
+            foreach (var s in doc.RootElement.EnumerateArray())
+            {
+                var name = s.TryGetProperty("name", out var n) ? n.GetString() : null;
+                var place = s.TryGetProperty("place", out var p) ? p.GetString() : null;
+                var gid = s.TryGetProperty("globalId", out var g) ? g.GetString() : null;
+                var types = new List<string>();
+                if (s.TryGetProperty("transportTypes", out var tt) && tt.ValueKind == JsonValueKind.Array)
+                    foreach (var t in tt.EnumerateArray())
+                        if (t.GetString() is { } ts) types.Add(ts);
+                if (name != null)
+                    results.Add(new { id = gid ?? name, name, place, types = string.Join(",", types) });
+            }
+            return Json(results);
+        }
+        catch { return Json(Array.Empty<object>()); }
+    }
+
     // ── Helper: detect relevant Autobahn(s) from city names ─────────────
 
     private static string[] DetectAutobahnen(string from, string to)
