@@ -7,7 +7,7 @@
 <section class="mc-section">
     <div class="mc-section-title"><i class="bi bi-cloud-sun"></i> Informationen &amp; Mobilität</div>
 
-    <div style="display:grid; grid-template-columns:1fr 300px; gap:1rem; align-items:start;">
+    <div style="display:grid; grid-template-columns:1fr minmax(260px, 320px); gap:1rem; align-items:start;">
 
         <!-- Mobilität -->
         <div class="mc-mobility-grid">
@@ -38,10 +38,14 @@
                             <div class="ac-dropdown" id="bahnToAc"></div>
                         </div>
                     </div>
-                    <div style="display:flex; gap:.5rem; align-items:end;">
-                        <div style="flex:1;">
+                    <div style="display:flex; gap:.5rem; align-items:end; flex-wrap:wrap;">
+                        <div style="flex:1; min-width:120px;">
                             <span style="font-size:.75rem; color:var(--mc-text-muted);">Datum</span>
                             <input type="date" class="mc-input" id="bahnDate" />
+                        </div>
+                        <div style="min-width:100px;">
+                            <span style="font-size:.75rem; color:var(--mc-text-muted);">Uhrzeit</span>
+                            <input type="time" class="mc-input" id="bahnTime" />
                         </div>
                         <button onclick="bahnSuchen()" style="padding:.55rem 1.25rem; border:none; border-radius:var(--mc-radius-sm); background:#EC0016; color:#fff; font-weight:600; cursor:pointer; font-size:.875rem; white-space:nowrap;">
                             <i class="bi bi-search"></i> Suchen
@@ -70,9 +74,15 @@
                             <div class="ac-dropdown" id="mvgToAc"></div>
                         </div>
                     </div>
-                    <button onclick="mvgSuchen()" style="padding:.55rem 1rem; border:none; border-radius:var(--mc-radius-sm); background:#486EBE; color:#fff; font-weight:600; cursor:pointer; font-size:.875rem; width:100%;">
-                        <i class="bi bi-search"></i> Verbindung suchen
-                    </button>
+                    <div style="display:flex; gap:.5rem; align-items:end;">
+                        <div style="min-width:100px;">
+                            <span style="font-size:.75rem; color:var(--mc-text-muted);">Uhrzeit</span>
+                            <input type="time" class="mc-input" id="mvgTime" />
+                        </div>
+                        <button onclick="mvgSuchen()" style="flex:1; padding:.55rem 1rem; border:none; border-radius:var(--mc-radius-sm); background:#486EBE; color:#fff; font-weight:600; cursor:pointer; font-size:.875rem;">
+                            <i class="bi bi-search"></i> Verbindung suchen
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -132,7 +142,7 @@
     <div class="mc-section-title"><i class="bi bi-graph-up-arrow"></i> Dashboard &amp; Kennzahlen</div>
 
     <!-- KPI Karten -->
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; margin-bottom:1.5rem;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr)); gap:1rem; margin-bottom:1.5rem;">
         <div class="mc-kpi-card">
             <div class="mc-kpi-label">Kernkapital</div>
             <div class="mc-kpi-value" style="font-size:1.35rem;">292.052.494,75 €</div>
@@ -372,14 +382,19 @@ function loadWeather() {
 loadWeather();
 
 // ═══ Mobilität ════════════════════════════════════════════════════════════════
-document.getElementById('bahnDate').valueAsDate = new Date();
+// Standardwerte: heute + jetzt (deutsche Zeit)
+const nowDE = new Date().toLocaleString('sv-SE', { timeZone: 'Europe/Berlin' });
+document.getElementById('bahnDate').value = nowDE.slice(0, 10);
+document.getElementById('bahnTime').value = nowDE.slice(11, 16);
+document.getElementById('mvgTime').value = nowDE.slice(11, 16);
 
 async function bahnSuchen() {
     const from = document.getElementById('bahnFrom').value;
     const to = document.getElementById('bahnTo').value;
     const date = document.getElementById('bahnDate').value;
+    const time = document.getElementById('bahnTime').value || '00:00';
     if (!from || !to) return;
-    const r = await fetch(`/api/BahnSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}`);
+    const r = await fetch(`/api/BahnSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&time=${time}`);
     const data = await r.json();
     let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-train-front"></i> ${from} → ${to} · ${date}</div>`;
     html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;">';
@@ -395,15 +410,16 @@ async function bahnSuchen() {
 async function mvgSuchen() {
     const from = document.getElementById('mvgFrom').value;
     const to = document.getElementById('mvgTo').value;
+    const time = document.getElementById('mvgTime').value || '';
     if (!from || !to) return;
-    const r = await fetch(`/api/MvgSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    const r = await fetch(`/api/MvgSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&time=${time}`);
     const data = await r.json();
     let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-bus-front"></i> ${from} → ${to}</div>`;
     html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;">';
-    html += '<thead><tr style="border-bottom:2px solid var(--mc-border);text-align:left;"><th style="padding:.5rem;">Abfahrt</th><th>Linie</th><th>Richtung</th><th>Dauer</th><th>Typ</th></tr></thead><tbody>';
+    html += '<thead><tr style="border-bottom:2px solid var(--mc-border);text-align:left;"><th style="padding:.5rem;">Abfahrt</th><th>Ankunft</th><th>Linie</th><th>Richtung</th><th>Dauer</th><th>Typ</th></tr></thead><tbody>';
     data.forEach(c => {
         const badge = c.typ === 'U-Bahn' ? 'background:#006CB7;' : c.typ === 'S-Bahn' ? 'background:#408335;' : c.typ === 'Tram' ? 'background:#D4002A;' : 'background:var(--mc-primary);';
-        html += `<tr style="border-bottom:1px solid var(--mc-border);"><td style="padding:.5rem;font-weight:600;">${c.abfahrt}</td><td><span style="${badge}color:#fff;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:600;">${c.linie}</span></td><td>${c.richtung}</td><td>${c.dauer}</td><td style="font-size:.8rem;">${c.typ}</td></tr>`;
+        html += `<tr style="border-bottom:1px solid var(--mc-border);"><td style="padding:.5rem;font-weight:600;">${c.abfahrt}</td><td>${c.ankunft||''}</td><td><span style="${badge}color:#fff;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:600;">${c.linie}</span></td><td>${c.richtung}</td><td>${c.dauer}</td><td style="font-size:.8rem;">${c.typ}</td></tr>`;
     });
     html += '</tbody></table>';
     html += `<div style="margin-top:1rem;text-align:center;"><a href="https://www.mvg.de" target="_blank" class="btn-mc btn-mc-outline" style="text-decoration:none;">MVG.de öffnen <i class="bi bi-box-arrow-up-right"></i></a></div>`;

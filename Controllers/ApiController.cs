@@ -137,14 +137,13 @@ public class ApiController : Controller
     // ── Deutsche Bahn (Real API via v6.db.transport.rest) ───────────────
 
     [HttpGet]
-    public async Task<IActionResult> BahnSearch([FromQuery] string from, [FromQuery] string to, [FromQuery] string? date)
+    public async Task<IActionResult> BahnSearch([FromQuery] string from, [FromQuery] string to, [FromQuery] string? date, [FromQuery] string? time)
     {
         try
         {
             var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(15);
 
-            // Step 1: Resolve station IDs
             var fromResp = await client.GetStringAsync(
                 $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(from)}&results=1");
             var toResp = await client.GetStringAsync(
@@ -156,8 +155,16 @@ public class ApiController : Controller
             var fromId = fromDoc.RootElement[0].GetProperty("id").GetString();
             var toId = toDoc.RootElement[0].GetProperty("id").GetString();
 
-            // Step 2: Search journeys
-            var departure = string.IsNullOrEmpty(date) ? DateTime.UtcNow : DateTime.Parse(date);
+            var departure = DateTime.UtcNow;
+            if (!string.IsNullOrEmpty(date))
+            {
+                var dateStr = date + (string.IsNullOrEmpty(time) ? "T00:00" : "T" + time);
+                if (DateTime.TryParse(dateStr, out var parsed))
+                {
+                    var tz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
+                    departure = TimeZoneInfo.ConvertTimeToUtc(parsed, tz);
+                }
+            }
             var journeyUrl = $"https://v6.db.transport.rest/journeys?from={fromId}&to={toId}&departure={departure:O}&results=6";
             var journeyResp = await client.GetStringAsync(journeyUrl);
 
@@ -221,59 +228,90 @@ public class ApiController : Controller
     // ── MVG M\u00fcnchen (Real API via v6.db.transport.rest) ────────────────
 
     [HttpGet]
-    public async Task<IActionResult> MvgSearch([FromQuery] string from, [FromQuery] string to)
+    public async Task<IActionResult> MvgSearch([FromQuery] string from, [FromQuery] string to, [FromQuery] string? time)
     {
         try
         {
             var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(15);
 
-            // Search stations (append M\u00fcnchen to improve results)
             var fromResp = await client.GetStringAsync(
-                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(from + " M\u00fcnchen")}&results=1");
+                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(from)}&results=1");
+            var toResp = await client.GetStringAsync(
+                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(to)}&results=1");
+
             using var fromDoc = JsonDocument.Parse(fromResp);
+            using var toDoc = JsonDocument.Parse(toResp);
+
             var fromId = fromDoc.RootElement[0].GetProperty("id").GetString();
+            var toId = toDoc.RootElement[0].GetProperty("id").GetString();
 
-            // Get departures from that station
-            var depResp = await client.GetStringAsync(
-                $"https://v6.db.transport.rest/stops/{fromId}/departures?duration=30&results=8");
-            using var depDoc = JsonDocument.Parse(depResp);
-
-            var results = new List<object>();
-            foreach (var dep in depDoc.RootElement.GetProperty("departures").EnumerateArray().Take(8))
+            var departure = DateTime.UtcNow;
+            if (!string.IsNullOrEmpty(time))
             {
-                var when = dep.TryGetProperty("when", out var w) && w.ValueKind == JsonValueKind.String
-                    ? DateTime.Parse(w.GetString()!).ToString("HH:mm") : "\u2014";
-                var line = dep.TryGetProperty("line", out var l) ? l : default;
-                var lineName = line.ValueKind != JsonValueKind.Undefined && line.TryGetProperty("name", out var ln) ? ln.GetString() : "?";
-                var product = line.ValueKind != JsonValueKind.Undefined && line.TryGetProperty("product", out var pr) ? pr.GetString() : "?";
-                var direction = dep.TryGetProperty("direction", out var dir) ? dir.GetString() : "";
-
-                var typ = product switch
+                var today = DateTime.Now.ToString("yyyy-MM-dd");
+                if (DateTime.TryParse(today + "T" + time, out var parsed))
                 {
-                    "suburbanExpress" or "suburban" => "S-Bahn",
-                    "subway" => "U-Bahn",
-                    "tram" => "Tram",
-                    "bus" => "Bus",
-                    "regional" or "regionalExpress" => "Regionalbahn",
-                    _ => product ?? "\u00d6PNV"
-                };
-
-                results.Add(new { abfahrt = when, linie = lineName, richtung = direction, dauer = "\u2014", typ });
+                    var tz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
+                    departure = TimeZoneInfo.ConvertTimeToUtc(parsed, tz);
+                }
             }
 
+            var url = $"https://v6.db.transport.rest/journeys?from={fromId}&to={toId}&departure={departure:O}&results=6&suburban=true&subway=true&tram=true&bus=true&regional=true&nationalExpress=false&national=false";
+            var journeyResp = await client.GetStringAsync(url);
+            using var jDoc = JsonDocument.Parse(journeyResp);
+
+            var results = new List<object>();
+            foreach (var journey in jDoc.RootElement.GetProperty("journeys").EnumerateArray().Take(6))
+            {
+                var legs = journey.GetProperty("legs");
+                var firstLeg = legs[0];
+                var lastLeg = legs[legs.GetArrayLength() - 1];
+
+                var abfahrt = DateTime.Parse(firstLeg.GetProperty("departure").GetString()!).ToLocalTime().ToString("HH:mm");
+                var ankunft = DateTime.Parse(lastLeg.GetProperty("arrival").GetString()!).ToLocalTime().ToString("HH:mm");
+
+                var dep = DateTime.Parse(firstLeg.GetProperty("departure").GetString()!);
+                var arr = DateTime.Parse(lastLeg.GetProperty("arrival").GetString()!);
+                var dauer = arr - dep;
+                var dauerStr = dauer.TotalHours >= 1 ? $"{(int)dauer.TotalHours}:{dauer.Minutes:D2} h" : $"{(int)dauer.TotalMinutes} min";
+
+                var linien = new List<string>();
+                var typ = "OEPNV";
+                foreach (var leg in legs.EnumerateArray())
+                {
+                    if (leg.TryGetProperty("line", out var line))
+                    {
+                        var name = line.TryGetProperty("name", out var n) ? n.GetString() : null;
+                        var product = line.TryGetProperty("product", out var p) ? p.GetString() : null;
+                        if (!string.IsNullOrEmpty(name)) linien.Add(name);
+                        if (product != null) typ = product switch
+                        {
+                            "suburban" or "suburbanExpress" => "S-Bahn",
+                            "subway" => "U-Bahn",
+                            "tram" => "Tram",
+                            "bus" => "Bus",
+                            _ => typ
+                        };
+                    }
+                }
+
+                var richtung = lastLeg.TryGetProperty("destination", out var dest) && dest.TryGetProperty("name", out var dn) ? dn.GetString() : to;
+
+                results.Add(new { abfahrt, linie = string.Join(" + ", linien), richtung, dauer = dauerStr, typ, ankunft });
+            }
             return Json(results);
         }
         catch
         {
-            // Fallback mock data
+            var n = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"));
             return Json(new[]
             {
-                new { abfahrt = DateTime.Now.AddMinutes(3).ToString("HH:mm"), linie = "U3", richtung = "Moosach", dauer = "12 min", typ = "U-Bahn" },
-                new { abfahrt = DateTime.Now.AddMinutes(5).ToString("HH:mm"), linie = "S1", richtung = "Flughafen", dauer = "22 min", typ = "S-Bahn" },
-                new { abfahrt = DateTime.Now.AddMinutes(8).ToString("HH:mm"), linie = "Tram 19", richtung = "Pasing", dauer = "18 min", typ = "Tram" },
-                new { abfahrt = DateTime.Now.AddMinutes(10).ToString("HH:mm"), linie = "Bus 58", richtung = "Silberhornstr.", dauer = "15 min", typ = "Bus" },
-                new { abfahrt = DateTime.Now.AddMinutes(14).ToString("HH:mm"), linie = "U6", richtung = "Klinikum Gro\u00dfhadern", dauer = "20 min", typ = "U-Bahn" }
+                new { abfahrt = n.AddMinutes(3).ToString("HH:mm"), linie = "U3", richtung = "Moosach", dauer = "12 min", typ = "U-Bahn", ankunft = n.AddMinutes(15).ToString("HH:mm") },
+                new { abfahrt = n.AddMinutes(5).ToString("HH:mm"), linie = "S1", richtung = "Flughafen", dauer = "22 min", typ = "S-Bahn", ankunft = n.AddMinutes(27).ToString("HH:mm") },
+                new { abfahrt = n.AddMinutes(8).ToString("HH:mm"), linie = "Tram 19", richtung = "Pasing", dauer = "18 min", typ = "Tram", ankunft = n.AddMinutes(26).ToString("HH:mm") },
+                new { abfahrt = n.AddMinutes(10).ToString("HH:mm"), linie = "Bus 58", richtung = "Silberhornstr.", dauer = "15 min", typ = "Bus", ankunft = n.AddMinutes(25).ToString("HH:mm") },
+                new { abfahrt = n.AddMinutes(14).ToString("HH:mm"), linie = "U6", richtung = "Klinikum Grosshadern", dauer = "20 min", typ = "U-Bahn", ankunft = n.AddMinutes(34).ToString("HH:mm") }
             });
         }
     }
