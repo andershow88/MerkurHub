@@ -353,25 +353,62 @@
 
         var GLOBE_RADIUS = 5;
 
-        // ── Globe sphere ──
+        // ── Stars background ──
+        var starGeo = new THREE.BufferGeometry();
+        var starVerts = [];
+        for (var i = 0; i < 2000; i++) {
+            starVerts.push((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 120, (Math.random() - 0.5) * 120);
+        }
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+        var starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.08, transparent: true, opacity: 0.6 });
+        scene.add(new THREE.Points(starGeo, starMat));
+
+        // ── Globe sphere (dark, semi-transparent) ──
         var globeGeo = new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64);
-        var globeMat = new THREE.MeshBasicMaterial({ color: 0x0a1628 });
+        var globeMat = new THREE.MeshBasicMaterial({ color: 0x060e1a, transparent: true, opacity: 0.92 });
         var globe = new THREE.Mesh(globeGeo, globeMat);
         scene.add(globe);
 
-        // ── Wireframe overlay ──
-        var wireGeo = new THREE.SphereGeometry(GLOBE_RADIUS * 1.002, 48, 48);
-        var wireMat = new THREE.MeshBasicMaterial({
-            color: 0x6B8FA3, wireframe: true, transparent: true, opacity: 0.08
-        });
-        scene.add(new THREE.Mesh(wireGeo, wireMat));
+        // ── Hex grid overlay ──
+        var wireGeo = new THREE.SphereGeometry(GLOBE_RADIUS * 1.002, 36, 24);
+        var wireMat = new THREE.MeshBasicMaterial({ color: 0x1a4a6a, wireframe: true, transparent: true, opacity: 0.12 });
+        var wireGlobe = new THREE.Mesh(wireGeo, wireMat);
+        scene.add(wireGlobe);
 
-        // ── Atmosphere glow ──
-        var atmosGeo = new THREE.SphereGeometry(GLOBE_RADIUS * 1.04, 48, 48);
-        var atmosMat = new THREE.MeshBasicMaterial({
-            color: 0x1a3a5c, transparent: true, opacity: 0.06, side: THREE.BackSide
+        // ── Inner glow ──
+        var innerGeo = new THREE.SphereGeometry(GLOBE_RADIUS * 0.98, 32, 32);
+        var innerMat = new THREE.MeshBasicMaterial({ color: 0x0a2040, transparent: true, opacity: 0.3 });
+        scene.add(new THREE.Mesh(innerGeo, innerMat));
+
+        // ── Atmosphere multi-layer glow ──
+        var atmosLayers = [
+            { scale: 1.03, color: 0x1a5a8a, opacity: 0.08 },
+            { scale: 1.06, color: 0x0a3a6a, opacity: 0.05 },
+            { scale: 1.12, color: 0x8B2252, opacity: 0.025 }
+        ];
+        atmosLayers.forEach(function(a) {
+            var geo = new THREE.SphereGeometry(GLOBE_RADIUS * a.scale, 32, 32);
+            var mat = new THREE.MeshBasicMaterial({ color: a.color, transparent: true, opacity: a.opacity, side: THREE.BackSide });
+            scene.add(new THREE.Mesh(geo, mat));
         });
-        scene.add(new THREE.Mesh(atmosGeo, atmosMat));
+
+        // ── Orbital rings ──
+        var ringGroup = new THREE.Group();
+        [0, Math.PI / 3, -Math.PI / 4].forEach(function(tilt, idx) {
+            var ringGeo = new THREE.RingGeometry(GLOBE_RADIUS * 1.25, GLOBE_RADIUS * 1.26, 128);
+            var ringMat = new THREE.MeshBasicMaterial({ color: idx === 0 ? 0xC8A96E : 0x4a8ab0, transparent: true, opacity: 0.12, side: THREE.DoubleSide });
+            var ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = Math.PI / 2 + tilt;
+            ring.rotation.z = idx * 0.5;
+            ringGroup.add(ring);
+        });
+        scene.add(ringGroup);
+
+        // ── Scan line (rotating band) ──
+        var scanGeo = new THREE.RingGeometry(GLOBE_RADIUS * 1.001, GLOBE_RADIUS * 1.015, 64, 1, 0, Math.PI * 0.4);
+        var scanMat = new THREE.MeshBasicMaterial({ color: 0x00ffaa, transparent: true, opacity: 0.15, side: THREE.DoubleSide });
+        var scanLine = new THREE.Mesh(scanGeo, scanMat);
+        scene.add(scanLine);
 
         // ── Continent outline dots ──
         var continentPoints = [];
@@ -459,9 +496,9 @@
         ];
         for (var i = 0; i < australia.length; i++) continentPoints.push(australia[i]);
 
-        // Create continent dot meshes
-        var dotGeo = new THREE.SphereGeometry(0.02, 4, 4);
-        var dotMat = new THREE.MeshBasicMaterial({ color: 0x4a6a8a, transparent: true, opacity: 0.6 });
+        // Create continent dot meshes (neon-style)
+        var dotGeo = new THREE.SphereGeometry(0.025, 6, 6);
+        var dotMat = new THREE.MeshBasicMaterial({ color: 0x3a9ac0, transparent: true, opacity: 0.7 });
 
         for (var i = 0; i < continentPoints.length; i++) {
             var pt = continentPoints[i];
@@ -499,11 +536,13 @@
             { name: 'Tokyo', lat: 35.68, lng: 139.69 }
         ];
 
-        // City dot meshes
-        var cityGeo = new THREE.SphereGeometry(0.06, 12, 12);
-        var cityMat = new THREE.MeshBasicMaterial({ color: 0xC8A96E });
-        var cityGlowGeo = new THREE.SphereGeometry(0.12, 12, 12);
-        var cityGlowMat = new THREE.MeshBasicMaterial({ color: 0xC8A96E, transparent: true, opacity: 0.25 });
+        // City dot meshes (brighter, larger glow)
+        var cityGeo = new THREE.SphereGeometry(0.07, 16, 16);
+        var cityMat = new THREE.MeshBasicMaterial({ color: 0xffd080 });
+        var cityGlowGeo = new THREE.SphereGeometry(0.18, 16, 16);
+        var cityGlowMat = new THREE.MeshBasicMaterial({ color: 0xC8A96E, transparent: true, opacity: 0.3 });
+        var cityOuterGeo = new THREE.SphereGeometry(0.35, 12, 12);
+        var cityOuterMat = new THREE.MeshBasicMaterial({ color: 0xC8A96E, transparent: true, opacity: 0.06 });
 
         var cityMeshes = [];
         var cityGlows = [];
@@ -520,6 +559,10 @@
             glow.position.copy(pos);
             scene.add(glow);
             cityGlows.push(glow);
+
+            var outer = new THREE.Mesh(cityOuterGeo, cityOuterMat.clone());
+            outer.position.copy(pos);
+            scene.add(outer);
         }
 
         // ── Connection lines between cities ──
@@ -552,25 +595,34 @@
             var points = curve.getPoints(40);
             var lineGeo = new THREE.BufferGeometry().setFromPoints(points);
             var lineMat = new THREE.LineBasicMaterial({
-                color: 0xC8A96E, transparent: true, opacity: 0.35
+                color: 0xffc860, transparent: true, opacity: 0.4
             });
             var line = new THREE.Line(lineGeo, lineMat);
             scene.add(line);
             lineMeshes.push({ line: line, curve: curve, offset: Math.random() * Math.PI * 2 });
         }
 
-        // ── Traveling light particles on connections ──
-        var travelerGeo = new THREE.SphereGeometry(0.04, 6, 6);
+        // ── Traveling light particles (multiple per connection) ──
+        var travelerGeo = new THREE.SphereGeometry(0.05, 8, 8);
         var travelers = [];
         for (var i = 0; i < lineMeshes.length; i++) {
-            var travelerMat = new THREE.MeshBasicMaterial({ color: 0xC8A96E, transparent: true, opacity: 0.8 });
-            var traveler = new THREE.Mesh(travelerGeo, travelerMat);
-            scene.add(traveler);
-            travelers.push({ mesh: traveler, curveData: lineMeshes[i], t: Math.random() });
+            for (var j = 0; j < 2; j++) {
+                var travelerMat = new THREE.MeshBasicMaterial({ color: 0xffdd88, transparent: true, opacity: 0.9 });
+                var traveler = new THREE.Mesh(travelerGeo, travelerMat);
+                scene.add(traveler);
+                // Smaller trailing glow
+                var trailMat = new THREE.MeshBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.3 });
+                var trail = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), trailMat);
+                scene.add(trail);
+                travelers.push({ mesh: traveler, trail: trail, curveData: lineMeshes[i], t: Math.random() });
+            }
         }
 
-        // ── Ambient light ──
-        scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+        // ── Ambient + point lights ──
+        scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+        var pointLight = new THREE.PointLight(0x4488cc, 0.5, 30);
+        pointLight.position.set(5, 8, 5);
+        scene.add(pointLight);
 
         // ── Munich target for zoom ──
         var munichPos = latLngToVector3(48.14, 11.58, GLOBE_RADIUS * 1.01);
@@ -599,8 +651,13 @@
 
             var elapsed = Date.now() - startTime;
 
-            // Slow globe rotation
-            globe.rotation.y += 0.001;
+            // Slow globe rotation + sync wireframe + scan line
+            globe.rotation.y += 0.0008;
+            wireGlobe.rotation.y = globe.rotation.y;
+            ringGroup.rotation.y += 0.0004;
+            ringGroup.rotation.x += 0.0001;
+            scanLine.rotation.y += 0.012;
+            scanLine.rotation.x = Math.sin(elapsed * 0.0005) * 0.3;
 
             // Pulse city glows
             for (var i = 0; i < cityGlows.length; i++) {
@@ -609,15 +666,23 @@
                 cityGlows[i].material.opacity = 0.15 + 0.15 * Math.sin(elapsed * 0.003 + i);
             }
 
-            // Animate traveling lights
+            // Animate traveling lights with trails
             for (var i = 0; i < travelers.length; i++) {
                 var tr = travelers[i];
-                tr.t += 0.004;
+                tr.t += 0.005;
                 if (tr.t > 1) tr.t -= 1;
                 var pt = tr.curveData.curve.getPoint(tr.t);
                 tr.mesh.position.copy(pt);
-                tr.mesh.material.opacity = 0.4 + 0.4 * Math.sin(tr.t * Math.PI);
+                tr.mesh.material.opacity = 0.5 + 0.5 * Math.sin(tr.t * Math.PI);
+                // Trail follows slightly behind
+                var trailT = (tr.t - 0.03 + 1) % 1;
+                var trailPt = tr.curveData.curve.getPoint(trailT);
+                tr.trail.position.copy(trailPt);
+                tr.trail.material.opacity = 0.15 + 0.15 * Math.sin(tr.t * Math.PI);
             }
+
+            // Pulse stars
+            starMat.opacity = 0.5 + 0.1 * Math.sin(elapsed * 0.001);
 
             // Animate connection line opacity
             for (var i = 0; i < lineMeshes.length; i++) {
