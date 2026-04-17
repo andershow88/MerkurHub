@@ -60,9 +60,68 @@ app.MapControllerRoute("default", "{controller=Hub}/{action=Index}/{id?}");
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var log = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
         await db.Database.EnsureCreatedAsync();
+
+        // Fehlende Tabellen nachträglich anlegen (EnsureCreated überspringt existierende DBs)
+        var conn = db.Database.GetDbConnection();
+        await conn.OpenAsync();
+        using var cmd = conn.CreateCommand();
+        var isPostgres = db.Database.ProviderName?.Contains("Npgsql") == true;
+
+        if (isPostgres)
+        {
+            cmd.CommandText = """
+                CREATE TABLE IF NOT EXISTS "PdfDokumente" (
+                    "Id" SERIAL PRIMARY KEY,
+                    "Titel" TEXT NOT NULL DEFAULT '',
+                    "Dateiname" TEXT NOT NULL DEFAULT '',
+                    "Dateipfad" TEXT NOT NULL DEFAULT '',
+                    "Dateigroesse" BIGINT NOT NULL DEFAULT 0,
+                    "Seitenanzahl" INT NOT NULL DEFAULT 0,
+                    "HochgeladenVonId" INT NOT NULL DEFAULT 0,
+                    "HochgeladenVonName" TEXT NOT NULL DEFAULT '',
+                    "HochgeladenAm" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                    "IstVerarbeitet" BOOLEAN NOT NULL DEFAULT FALSE
+                );
+                CREATE TABLE IF NOT EXISTS "DokumentSeiten" (
+                    "Id" SERIAL PRIMARY KEY,
+                    "PdfDokumentId" INT NOT NULL DEFAULT 0,
+                    "Seitennummer" INT NOT NULL DEFAULT 0,
+                    "Text" TEXT NOT NULL DEFAULT '',
+                    "EmbeddingJson" TEXT NULL
+                );
+                """;
+        }
+        else
+        {
+            cmd.CommandText = """
+                CREATE TABLE IF NOT EXISTS "PdfDokumente" (
+                    "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    "Titel" TEXT NOT NULL DEFAULT '',
+                    "Dateiname" TEXT NOT NULL DEFAULT '',
+                    "Dateipfad" TEXT NOT NULL DEFAULT '',
+                    "Dateigroesse" INTEGER NOT NULL DEFAULT 0,
+                    "Seitenanzahl" INTEGER NOT NULL DEFAULT 0,
+                    "HochgeladenVonId" INTEGER NOT NULL DEFAULT 0,
+                    "HochgeladenVonName" TEXT NOT NULL DEFAULT '',
+                    "HochgeladenAm" TEXT NOT NULL DEFAULT '',
+                    "IstVerarbeitet" INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE TABLE IF NOT EXISTS "DokumentSeiten" (
+                    "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    "PdfDokumentId" INTEGER NOT NULL DEFAULT 0,
+                    "Seitennummer" INTEGER NOT NULL DEFAULT 0,
+                    "Text" TEXT NOT NULL DEFAULT '',
+                    "EmbeddingJson" TEXT NULL
+                );
+                """;
+        }
+        await cmd.ExecuteNonQueryAsync();
+        log.LogInformation("Tabellen-Check abgeschlossen");
+
         if (!await db.Users.AnyAsync())
         {
             db.Users.AddRange(
@@ -74,7 +133,6 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        var log = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         log.LogWarning(ex, "Seed fehlgeschlagen, DB wird neu erstellt");
         try
         {
