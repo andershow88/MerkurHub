@@ -51,6 +51,13 @@
                             <span style="font-size:.75rem; color:var(--mc-text-muted); font-weight:500;">Uhrzeit</span>
                             <input type="time" class="mc-input" id="bahnTime" />
                         </div>
+                        <div style="min-width:90px;">
+                            <span style="font-size:.75rem; color:var(--mc-text-muted); font-weight:500;">Klasse</span>
+                            <select class="mc-input" id="bahnKlasse" style="padding:.55rem .5rem;">
+                                <option value="2">2. Klasse</option>
+                                <option value="1">1. Klasse</option>
+                            </select>
+                        </div>
                         <button onclick="bahnSuchen()" style="padding:.6rem 1.5rem; border:none; border-radius:var(--mc-radius-sm); background:linear-gradient(135deg,#EC0016,#c4000f); color:#fff; font-weight:600; cursor:pointer; font-size:.9rem; white-space:nowrap; box-shadow:0 2px 8px rgba(236,0,22,.25); transition:all .2s;">
                             <i class="bi bi-search"></i> Suchen
                         </button>
@@ -587,9 +594,11 @@ async function bahnSuchen() {
     const to = document.getElementById('bahnTo').value;
     const date = document.getElementById('bahnDate').value;
     const time = document.getElementById('bahnTime').value || '00:00';
+    const klasse = document.getElementById('bahnKlasse').value;
+    const ersteKlasse = klasse === '1';
     if (!from || !to) { alert('Bitte Von und Nach eingeben.'); return; }
     showResult('Deutsche Bahn — Verbindungen', loadingHtml('Verbindungen werden gesucht'));
-    const r = await fetch(`/api/BahnSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&time=${time}`);
+    const r = await fetch(`/api/BahnSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&time=${time}&ersteKlasse=${ersteKlasse}`);
     const data = await r.json();
     let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-train-front"></i> ${from} → ${to} · ${date}</div>`;
     html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;">';

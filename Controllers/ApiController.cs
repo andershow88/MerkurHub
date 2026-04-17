@@ -137,7 +137,7 @@ public class ApiController : Controller
     // ── Deutsche Bahn (Real API via v6.db.transport.rest) ───────────────
 
     [HttpGet]
-    public async Task<IActionResult> BahnSearch([FromQuery] string from, [FromQuery] string to, [FromQuery] string? date, [FromQuery] string? time)
+    public async Task<IActionResult> BahnSearch([FromQuery] string from, [FromQuery] string to, [FromQuery] string? date, [FromQuery] string? time, [FromQuery] bool ersteKlasse = false)
     {
         try
         {
@@ -155,22 +155,20 @@ public class ApiController : Controller
             var fromId = fromDoc.RootElement[0].GetProperty("id").GetString();
             var toId = toDoc.RootElement[0].GetProperty("id").GetString();
 
-            var departure = DateTime.UtcNow;
+            // Abfahrtszeit als ISO-String mit Berlin-Offset aufbauen
+            var depParam = "";
             if (!string.IsNullOrEmpty(date))
             {
-                var dateStr = date + (string.IsNullOrEmpty(time) ? "T00:00" : "T" + time);
-                if (DateTime.TryParse(dateStr, out var parsed))
-                {
-                    var tz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
-                    departure = TimeZoneInfo.ConvertTimeToUtc(parsed, tz);
-                }
+                var t = string.IsNullOrEmpty(time) ? "00:00" : time;
+                depParam = $"&departure={Uri.EscapeDataString(date + "T" + t + ":00+02:00")}";
             }
-            var journeyUrl = $"https://v6.db.transport.rest/journeys?from={fromId}&to={toId}&departure={departure:O}&results=6";
+
+            var klasse = ersteKlasse ? "&firstClass=true" : "";
+            var journeyUrl = $"https://v6.db.transport.rest/journeys?from={fromId}&to={toId}{depParam}&results=6{klasse}";
             var journeyResp = await client.GetStringAsync(journeyUrl);
 
             using var jDoc = JsonDocument.Parse(journeyResp);
             var results = new List<object>();
-            var berlinTz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
 
             foreach (var journey in jDoc.RootElement.GetProperty("journeys").EnumerateArray().Take(6))
             {
@@ -178,11 +176,15 @@ public class ApiController : Controller
                 var firstLeg = legs[0];
                 var lastLeg = legs[legs.GetArrayLength() - 1];
 
-                var depDto = DateTimeOffset.Parse(firstLeg.GetProperty("departure").GetString()!);
-                var arrDto = DateTimeOffset.Parse(lastLeg.GetProperty("arrival").GetString()!);
-                var abfahrt = TimeZoneInfo.ConvertTime(depDto, berlinTz).ToString("HH:mm");
-                var ankunft = TimeZoneInfo.ConvertTime(arrDto, berlinTz).ToString("HH:mm");
+                // Zeiten direkt aus ISO-String extrahieren (sind bereits in Lokalzeit)
+                var depStr = firstLeg.GetProperty("departure").GetString() ?? "";
+                var arrStr = lastLeg.GetProperty("arrival").GetString() ?? "";
+                var abfahrt = depStr.Length >= 16 ? depStr.Substring(11, 5) : "??:??";
+                var ankunft = arrStr.Length >= 16 ? arrStr.Substring(11, 5) : "??:??";
 
+                // Dauer aus DateTimeOffset (korrekt über Zeitzonen)
+                var depDto = DateTimeOffset.Parse(depStr);
+                var arrDto = DateTimeOffset.Parse(arrStr);
                 var dauer = arrDto - depDto;
                 var dauerStr = $"{(int)dauer.TotalHours}:{dauer.Minutes:D2} h";
 
@@ -196,9 +198,12 @@ public class ApiController : Controller
                         var name = line.TryGetProperty("name", out var n) ? n.GetString() : "";
                         if (!string.IsNullOrEmpty(name)) zuege.Add(name);
                     }
+                    else if (leg.TryGetProperty("walking", out var w) && w.GetBoolean())
+                    {
+                        umstiege = Math.Max(0, umstiege - 1);
+                    }
                 }
 
-                // Price: try to extract, otherwise "Preis auf bahn.de"
                 var preis = "Preis auf bahn.de";
                 if (journey.TryGetProperty("price", out var price) && price.ValueKind != JsonValueKind.Null)
                 {
@@ -247,34 +252,32 @@ public class ApiController : Controller
             var fromId = fromDoc.RootElement[0].GetProperty("id").GetString();
             var toId = toDoc.RootElement[0].GetProperty("id").GetString();
 
-            var departure = DateTime.UtcNow;
+            var depParam = "";
             if (!string.IsNullOrEmpty(time))
             {
-                var today = DateTime.Now.ToString("yyyy-MM-dd");
-                if (DateTime.TryParse(today + "T" + time, out var parsed))
-                {
-                    var tz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
-                    departure = TimeZoneInfo.ConvertTimeToUtc(parsed, tz);
-                }
+                var berlinTz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
+                var today = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, berlinTz).ToString("yyyy-MM-dd");
+                depParam = $"&departure={Uri.EscapeDataString(today + "T" + time + ":00+02:00")}";
             }
 
-            var url = $"https://v6.db.transport.rest/journeys?from={fromId}&to={toId}&departure={departure:O}&results=6&suburban=true&subway=true&tram=true&bus=true&regional=true&nationalExpress=false&national=false";
+            var url = $"https://v6.db.transport.rest/journeys?from={fromId}&to={toId}{depParam}&results=6&suburban=true&subway=true&tram=true&bus=true&regional=true&nationalExpress=false&national=false";
             var journeyResp = await client.GetStringAsync(url);
             using var jDoc = JsonDocument.Parse(journeyResp);
 
             var results = new List<object>();
-            var berlinTz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
             foreach (var journey in jDoc.RootElement.GetProperty("journeys").EnumerateArray().Take(6))
             {
                 var legs = journey.GetProperty("legs");
                 var firstLeg = legs[0];
                 var lastLeg = legs[legs.GetArrayLength() - 1];
 
-                var depDto = DateTimeOffset.Parse(firstLeg.GetProperty("departure").GetString()!);
-                var arrDto = DateTimeOffset.Parse(lastLeg.GetProperty("arrival").GetString()!);
-                var abfahrt = TimeZoneInfo.ConvertTime(depDto, berlinTz).ToString("HH:mm");
-                var ankunft = TimeZoneInfo.ConvertTime(arrDto, berlinTz).ToString("HH:mm");
+                var depStr = firstLeg.GetProperty("departure").GetString() ?? "";
+                var arrStr = lastLeg.GetProperty("arrival").GetString() ?? "";
+                var abfahrt = depStr.Length >= 16 ? depStr.Substring(11, 5) : "??:??";
+                var ankunft = arrStr.Length >= 16 ? arrStr.Substring(11, 5) : "??:??";
 
+                var depDto = DateTimeOffset.Parse(depStr);
+                var arrDto = DateTimeOffset.Parse(arrStr);
                 var dauer = arrDto - depDto;
                 var dauerStr = dauer.TotalHours >= 1 ? $"{(int)dauer.TotalHours}:{dauer.Minutes:D2} h" : $"{(int)dauer.TotalMinutes} min";
 
