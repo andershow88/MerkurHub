@@ -8,6 +8,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@(ViewData["Title"] ?? "MerkurHub")</title>
     <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&family=Roboto:wght@300;400;500;700&display=swap" />
     <link rel="stylesheet" href="~/css/merkur.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -20,7 +23,7 @@
 <nav class="mc-topbar">
     <div class="mc-topbar-brand">
         <img src="~/images/merkur-logo.svg" alt="Merkur" style="height:34px;" />
-        <span style="font-size:1.15rem; font-weight:700; color:var(--mc-gold);">MerkurHub</span>
+        <span style="font-size:1.15rem; font-weight:700; color:var(--mc-petrol);">MerkurHub</span>
     </div>
 
     <div class="mc-topbar-nav">
@@ -39,7 +42,7 @@
             <span style="margin-left:.35rem;"><i class="bi bi-calendar3"></i></span>
             <span id="deDate"></span>
         </span>
-        <button onclick="ragFensterOeffnen()" style="padding:.4rem .85rem; border:none; border-radius:var(--mc-radius-sm); background:linear-gradient(135deg,var(--mc-navy),#2c3e64); color:var(--mc-gold); cursor:pointer; font-size:.8rem; font-weight:600; display:flex; align-items:center; gap:.4rem; transition:all .2s;" title="Wissenssuche">
+        <button onclick="ragFensterOeffnen()" style="padding:.4rem .85rem; border:2px solid var(--mc-petrol); border-radius:var(--mc-radius-pill); background:transparent; color:var(--mc-petrol); cursor:pointer; font-size:.8rem; font-weight:500; font-family:'Roboto',sans-serif; display:flex; align-items:center; gap:.4rem; transition:all .2s;" title="Wissenssuche" onmouseover="this.style.background='var(--mc-petrol)';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='var(--mc-petrol)'"
             <i class="bi bi-book"></i> Wissenssuche
         </button>
         <span class="mc-topbar-user d-none-sm">
@@ -90,7 +93,7 @@
 </script>
 <!-- ===== RAG Wissenssuche Fenster ===== -->
 <div id="ragFenster" style="display:none; position:fixed; z-index:1001; top:10vh; left:calc(50vw - 300px); width:min(620px,calc(100vw - 2rem)); height:min(700px,calc(100vh - 4rem)); background:#fff; border:1px solid #ddd; border-radius:var(--mc-radius); box-shadow:0 8px 40px rgba(0,0,0,.25); flex-direction:column; overflow:hidden; resize:both; min-width:360px; min-height:400px;">
-    <div id="ragHeader" style="padding:.65rem 1rem; background:linear-gradient(135deg,var(--mc-navy),#2c3e64); color:#fff; display:flex; align-items:center; justify-content:space-between; cursor:move; user-select:none; flex-shrink:0;">
+    <div id="ragHeader" style="padding:.65rem 1rem; background:var(--mc-petrol); color:#fff; display:flex; align-items:center; justify-content:space-between; cursor:move; user-select:none; flex-shrink:0;">
         <div style="display:flex; align-items:center; gap:.5rem;">
             <i class="bi bi-book" style="color:var(--mc-gold); font-size:1.15rem;"></i>
             <strong>Wissenssuche</strong>
@@ -106,11 +109,11 @@
     <div id="ragAuswahl" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:2rem;">
         <div style="font-size:1.1rem; font-weight:600; color:var(--mc-text); margin-bottom:.5rem;">Was möchtest du tun?</div>
         <button onclick="ragSucheModus()" style="width:100%; max-width:360px; padding:1.25rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius); background:var(--mc-bg); cursor:pointer; text-align:left; display:flex; align-items:center; gap:1rem; transition:all .2s;" onmouseover="this.style.borderColor='var(--mc-gold)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--mc-border)';this.style.transform=''">
-            <div style="width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,var(--mc-navy),#2c3e64); display:flex; align-items:center; justify-content:center;"><i class="bi bi-search" style="color:var(--mc-gold); font-size:1.3rem;"></i></div>
+            <div style="width:48px; height:48px; border-radius:12px; background:var(--mc-petrol); display:flex; align-items:center; justify-content:center;"><i class="bi bi-search" style="color:#fff; font-size:1.3rem;"></i></div>
             <div><div style="font-weight:600; color:var(--mc-text);">Inhalte durchsuchen</div><div style="font-size:.8rem; color:var(--mc-text-muted);">Stelle Fragen zu allen hochgeladenen Dokumenten</div></div>
         </button>
         <button onclick="aiOeffnen(); ragFensterSchliessen();" style="width:100%; max-width:360px; padding:1.25rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius); background:var(--mc-bg); cursor:pointer; text-align:left; display:flex; align-items:center; gap:1rem; transition:all .2s;" onmouseover="this.style.borderColor='var(--mc-gold)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--mc-border)';this.style.transform=''">
-            <div style="width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#c8a96e,#b8994e); display:flex; align-items:center; justify-content:center;"><i class="bi bi-stars" style="color:#fff; font-size:1.3rem;"></i></div>
+            <div style="width:48px; height:48px; border-radius:12px; background:var(--mc-gold); display:flex; align-items:center; justify-content:center;"><i class="bi bi-stars" style="color:#fff; font-size:1.3rem;"></i></div>
             <div><div style="font-weight:600; color:var(--mc-text);">KI-Assistent</div><div style="font-size:.8rem; color:var(--mc-text-muted);">Allgemeine Fragen &amp; Bankwissen</div></div>
         </button>
     </div>
@@ -133,7 +136,7 @@
         <div style="padding:.65rem 1rem; border-top:1px solid var(--mc-border); flex-shrink:0;">
             <div style="display:flex; gap:.5rem;">
                 <input type="text" id="ragInput" placeholder="Frage zu Dokumenten eingeben…" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();ragSenden();}" style="flex:1; padding:.55rem .75rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius-sm); background:var(--mc-bg); color:var(--mc-text); font-size:.9rem;" />
-                <button id="ragSendBtn" onclick="ragSenden()" style="padding:.55rem 1rem; border:none; border-radius:var(--mc-radius-sm); background:linear-gradient(135deg,var(--mc-navy),#2c3e64); color:var(--mc-gold); cursor:pointer;"><i class="bi bi-send"></i></button>
+                <button id="ragSendBtn" onclick="ragSenden()" style="padding:.55rem 1rem; border:none; border-radius:var(--mc-radius-sm); background:var(--mc-petrol); color:#fff; cursor:pointer;"><i class="bi bi-send"></i></button>
             </div>
         </div>
     </div>
@@ -273,16 +276,16 @@ if (ragH) {
 
 <!-- ===== KI-Assistent FAB ===== -->
 <button id="aiFab" onclick="aiOeffnen()" title="KI-Assistent"
-        style="position:fixed; right:1.25rem; bottom:1.25rem; z-index:995; width:56px; height:56px; border-radius:50%; border:none; background:linear-gradient(135deg, var(--mc-navy), #2c3e64); color:var(--mc-gold); box-shadow:var(--mc-shadow-lg); cursor:pointer; font-size:1.5rem; display:flex; align-items:center; justify-content:center;">
+        style="position:fixed; right:1.25rem; bottom:1.25rem; z-index:995; width:56px; height:56px; border-radius:50%; border:none; background:var(--mc-petrol); color:#fff; box-shadow:var(--mc-shadow-lg); cursor:pointer; font-size:1.5rem; display:flex; align-items:center; justify-content:center;">
     <i class="bi bi-stars"></i>
 </button>
 
 <!-- ===== KI-Assistent Chat-Modal ===== -->
 <div id="aiModal" role="dialog" aria-label="KI-Assistent"
      style="display:none; position:fixed; right:1.25rem; bottom:1.25rem; width:min(420px, calc(100vw - 2rem)); height:min(620px, calc(100vh - 2rem)); z-index:1000; background:#fff; border:1px solid #ddd; border-radius:var(--mc-radius); box-shadow:var(--mc-shadow-lg); flex-direction:column; overflow:hidden;">
-    <div style="padding:.75rem 1rem; background:linear-gradient(135deg, var(--mc-navy), #2c3e64); color:#fff; display:flex; align-items:center; justify-content:space-between;">
+    <div style="padding:.75rem 1rem; background:var(--mc-petrol); color:#fff; display:flex; align-items:center; justify-content:space-between;">
         <div style="display:flex; align-items:center; gap:.5rem;">
-            <i class="bi bi-stars" style="color:var(--mc-gold); font-size:1.25rem;"></i>
+            <i class="bi bi-stars" style="color:var(--mc-gold); font-size:1.15rem;"></i>
             <strong>KI-Assistent</strong>
             <span style="font-size:.75rem; opacity:.8;">MerkurHub</span>
         </div>
@@ -313,7 +316,7 @@ if (ragH) {
                    onkeydown="aiInputKeydown(event)"
                    style="flex:1; padding:.5rem .75rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius-sm); background:var(--mc-bg); color:var(--mc-text);" />
             <button id="aiSendBtn" onclick="aiSendenAusModal()"
-                    style="padding:.5rem 1rem; border:none; border-radius:var(--mc-radius-sm); background:var(--mc-navy); color:var(--mc-gold); cursor:pointer;">
+                    style="padding:.5rem 1rem; border:none; border-radius:var(--mc-radius-sm); background:var(--mc-petrol); color:#fff; cursor:pointer;">
                 <i class="bi bi-send"></i>
             </button>
         </div>
@@ -327,7 +330,7 @@ if (ragH) {
     .ai-msg-user { align-self:flex-end; max-width:85%; }
     .ai-msg-assistant { align-self:flex-start; max-width:90%; }
     .ai-msg-bubble { word-wrap:break-word; line-height:1.45; font-size:.9rem; }
-    .ai-msg-user .ai-msg-bubble { background:linear-gradient(135deg, var(--mc-navy), #2c3e64) !important; color:#fff !important; border-radius:var(--mc-radius-sm); padding:.6rem .75rem; }
+    .ai-msg-user .ai-msg-bubble { background:var(--mc-petrol) !important; color:#fff !important; border-radius:var(--mc-radius-sm); padding:.6rem .75rem; }
     .ai-msg-bubble p:last-child { margin-bottom:0; }
     .ai-msg-bubble pre { background:rgba(0,0,0,0.05); padding:.4rem; border-radius:4px; overflow-x:auto; font-size:.8rem; }
     .ai-msg-bubble code { background:rgba(0,0,0,0.06); padding:.1rem .25rem; border-radius:3px; font-size:.85em; }

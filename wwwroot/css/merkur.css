@@ -1,385 +1,343 @@
 /* ============================================================
-   MerkurHub - Premium Design System
-   Glassmorphism + Micro-Animations + Dark/Light Theme
+   MerkurHub — Corporate Design (merkur-privatbank.de)
+   Petrol #00515A · Gold #C8A96E · Roboto + Open Sans
+   Clean, seriös, minimalistisch · Dark/Light Theme
    ============================================================ */
 
-/* ----------------------------------------------------------
-   1. CSS Variables (Light Mode)
-   ---------------------------------------------------------- */
+/* 1. Variables — Light */
 :root {
-    --mc-primary: #6B8FA3;
-    --mc-primary-dark: #4a7088;
-    --mc-primary-light: #8eb0c4;
-    --mc-white: #ffffff;
-    --mc-bg: #F5F3F0;
-    --mc-bg-card: rgba(255,255,255,0.78);
-    --mc-border: rgba(180,175,168,0.35);
-    --mc-text: #2D2D3A;
-    --mc-text-muted: #7a7a8a;
-    --mc-topbar-h: 58px;
-    --mc-shadow: 0 2px 12px rgba(0,0,0,0.05);
-    --mc-shadow-lg: 0 8px 32px rgba(0,0,0,0.09);
-    --mc-radius: 16px;
-    --mc-radius-sm: 10px;
-    --mc-surface: rgba(255,255,255,0.88);
-    --mc-success: #3a9a5c;
-    --mc-danger: #c44a5a;
-    --mc-warning: #d4a030;
-    --mc-info: #5a9ab8;
-    --mc-navy: #2D2D3A;
+    --mc-petrol: #00515A;
+    --mc-petrol-light: #39747A;
+    --mc-petrol-dark: #003d44;
     --mc-gold: #C8A96E;
-    --mc-magenta: #8B2252;
-    --mc-glass-blur: 18px;
-    --mc-glass-border: rgba(255,255,255,0.3);
-    --mc-glow: rgba(139,34,82,0.12);
+    --mc-gold-light: #dcc495;
+    --mc-bg: #FFFFFF;
+    --mc-bg-alt: #F7F7F5;
+    --mc-bg-card: #FFFFFF;
+    --mc-border: #DCDCDC;
+    --mc-border-light: #F0F0F0;
+    --mc-text: #6D6D6D;
+    --mc-text-dark: #333333;
+    --mc-text-muted: #999999;
+    --mc-topbar-h: 72px;
+    --mc-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    --mc-shadow-lg: 0 4px 20px rgba(0,0,0,0.08);
+    --mc-radius: 12px;
+    --mc-radius-sm: 8px;
+    --mc-radius-pill: 30px;
+    --mc-surface: #FFFFFF;
+    --mc-success: #A2AE3C;
+    --mc-danger: #A70C23;
+    --mc-warning: #DE6250;
+    --mc-info: #95D3C2;
+    --mc-violet: #6C4562;
+    --mc-accent: rgba(0,81,90,0.06);
 }
 
-/* ----------------------------------------------------------
-   2. Dark Mode Variables
-   ---------------------------------------------------------- */
+/* 2. Variables — Dark */
 [data-theme="dark"] {
-    --mc-primary: #8eb0c4;
-    --mc-primary-dark: #a8c4d4;
-    --mc-primary-light: #6B8FA3;
-    --mc-white: #1A1A24;
-    --mc-bg: #0f0f18;
-    --mc-bg-card: rgba(28,28,40,0.68);
-    --mc-border: rgba(60,60,80,0.4);
-    --mc-text: #e2e2ee;
-    --mc-text-muted: #8a8a9a;
-    --mc-shadow: 0 2px 12px rgba(0,0,0,0.4);
-    --mc-shadow-lg: 0 8px 32px rgba(0,0,0,0.55);
-    --mc-surface: rgba(24,24,36,0.88);
-    --mc-success: #6abf80;
-    --mc-danger: #d06070;
-    --mc-warning: #d4b060;
-    --mc-info: #5ac0d0;
-    --mc-navy: #d0d0e0;
-    --mc-gold: #d4a04a;
-    --mc-magenta: #c44a7a;
-    --mc-glass-blur: 20px;
-    --mc-glass-border: rgba(255,255,255,0.06);
-    --mc-glow: rgba(196,74,122,0.12);
+    --mc-petrol: #5aabb5;
+    --mc-petrol-light: #7cc4cc;
+    --mc-petrol-dark: #3d8a94;
+    --mc-gold: #d4b47a;
+    --mc-gold-light: #e0c898;
+    --mc-bg: #111118;
+    --mc-bg-alt: #18181f;
+    --mc-bg-card: #1c1c26;
+    --mc-border: #2c2c3a;
+    --mc-border-light: #222230;
+    --mc-text: #d0d0dc;
+    --mc-text-dark: #e8e8f0;
+    --mc-text-muted: #7a7a8a;
+    --mc-shadow: 0 1px 6px rgba(0,0,0,0.3);
+    --mc-shadow-lg: 0 4px 20px rgba(0,0,0,0.4);
+    --mc-surface: #1c1c26;
+    --mc-success: #a8b84a;
+    --mc-danger: #d05060;
+    --mc-warning: #e08070;
+    --mc-info: #80c8b8;
+    --mc-violet: #9a6a8a;
+    --mc-accent: rgba(90,171,181,0.08);
 }
 
-/* ----------------------------------------------------------
-   3. Base Styles
-   ---------------------------------------------------------- */
+/* 3. Base */
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
-    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: 'Open Sans', Helvetica, Arial, sans-serif;
     background: var(--mc-bg);
     color: var(--mc-text);
-    font-size: 0.925rem;
+    font-size: 16px;
     margin: 0;
-    line-height: 1.55;
-    transition: background-color 0.4s ease, color 0.3s ease;
+    line-height: 1.5;
+    transition: background-color 0.3s, color 0.3s;
 }
 
-a { color: var(--mc-gold); text-decoration: none; transition: color 0.2s, opacity 0.2s; }
-a:hover { opacity: 0.85; }
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto', Helvetica, Arial, sans-serif;
+    color: var(--mc-text-dark);
+    font-weight: 500;
+}
+
+a { color: var(--mc-petrol); text-decoration: none; transition: color 0.2s; }
+a:hover { color: var(--mc-petrol-dark); }
 img { max-width: 100%; height: auto; }
 
-/* Global smooth transitions */
-.mc-topbar, .mc-card, .mc-tile, .mc-widget, .mc-kpi-card, .mc-modal, .mc-input, .btn-mc, .mc-theme-toggle, .mc-chart-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.mc-topbar, .mc-card, .mc-tile, .mc-kpi-card, .mc-modal, .mc-input, .btn-mc, .mc-theme-toggle, .mc-chart-card {
+    transition: all 0.25s ease;
 }
 
-/* ----------------------------------------------------------
-   4. Top Navigation Bar — Glassmorphism
-   ---------------------------------------------------------- */
+/* 4. Top Navigation — Clean White */
 .mc-topbar {
     position: fixed; top: 0; left: 0; right: 0; width: 100%;
     height: var(--mc-topbar-h);
     background: var(--mc-surface);
-    backdrop-filter: blur(var(--mc-glass-blur)); -webkit-backdrop-filter: blur(var(--mc-glass-blur));
-    border-bottom: 1px solid var(--mc-glass-border);
+    border-bottom: 1px solid var(--mc-border);
     box-shadow: var(--mc-shadow);
-    display: flex; align-items: center; padding: 0 1.5rem; z-index: 100; gap: 1rem;
+    display: flex; align-items: center; padding: 0 clamp(1rem, 3vw, 2.5rem); z-index: 100; gap: 1rem;
 }
 
 .mc-topbar-brand { display: flex; align-items: center; gap: 0.75rem; }
-.mc-topbar-brand img { height: 34px; width: auto; }
-.mc-topbar-brand span { color: var(--mc-gold); font-weight: 700; font-size: 1.15rem; white-space: nowrap; }
+.mc-topbar-brand img { height: 38px; width: auto; }
+.mc-topbar-brand span { color: var(--mc-petrol); font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 1.15rem; white-space: nowrap; }
 
-.mc-topbar-nav { display: flex; gap: 0.25rem; margin-left: 2rem; }
+.mc-topbar-nav { display: flex; gap: 0.15rem; margin-left: 2rem; }
 .mc-topbar-nav a {
-    padding: 0.5rem 1rem; border-radius: var(--mc-radius-sm);
-    color: var(--mc-text-muted); font-size: 0.875rem; font-weight: 500;
-    transition: all 0.25s ease; white-space: nowrap; position: relative;
+    padding: 0.5rem 1.1rem; border-radius: var(--mc-radius-pill);
+    color: var(--mc-text); font-family: 'Roboto', sans-serif;
+    font-size: 0.85rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;
+    transition: all 0.2s; white-space: nowrap;
 }
-.mc-topbar-nav a:hover { background: var(--mc-glow); color: var(--mc-magenta); opacity: 1; }
-.mc-topbar-nav a.active {
-    background: var(--mc-glow); color: var(--mc-magenta);
-    box-shadow: 0 0 12px var(--mc-glow);
-}
+.mc-topbar-nav a:hover { background: var(--mc-accent); color: var(--mc-petrol); }
+.mc-topbar-nav a.active { background: var(--mc-petrol); color: #fff; }
 
 .mc-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; }
-.mc-topbar-user { font-size: 0.875rem; color: var(--mc-text-muted); }
+.mc-topbar-user { font-size: 0.85rem; color: var(--mc-text-muted); }
 
-/* ----------------------------------------------------------
-   5. Main Content
-   ---------------------------------------------------------- */
+/* 5. Main Content */
 .mc-main {
     margin-top: var(--mc-topbar-h);
-    padding: clamp(0.75rem, 2vw, 2rem) clamp(1rem, 3vw, 3rem);
+    padding: clamp(1rem, 2.5vw, 2rem) clamp(1rem, 3vw, 3rem);
     max-width: 100%; width: 100%;
 }
 
-/* ----------------------------------------------------------
-   6. Cards — Glassmorphism
-   ---------------------------------------------------------- */
+/* 6. Cards — Clean, Minimal */
 .mc-card {
     background: var(--mc-bg-card);
-    backdrop-filter: blur(var(--mc-glass-blur)); -webkit-backdrop-filter: blur(var(--mc-glass-blur));
     border-radius: var(--mc-radius);
     box-shadow: var(--mc-shadow);
-    border: 1px solid var(--mc-glass-border);
+    border: 1px solid var(--mc-border);
     padding: 1.25rem;
 }
 .mc-card:hover {
-    box-shadow: var(--mc-shadow-lg), 0 0 20px var(--mc-glow);
-    transform: translateY(-2px);
-    border-color: rgba(200,169,110,0.2);
+    box-shadow: var(--mc-shadow-lg);
+    transform: translateY(-1px);
 }
 
-.mc-card-header { font-weight: 600; font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--mc-text); }
-.mc-card-header i { color: var(--mc-gold); }
+.mc-card-header { font-family: 'Roboto', sans-serif; font-weight: 500; font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--mc-text-dark); }
+.mc-card-header i { color: var(--mc-petrol); }
 
-/* ----------------------------------------------------------
-   7. Section Headers
-   ---------------------------------------------------------- */
+/* 7. Section Headers */
 .mc-section { margin-bottom: 2rem; }
 .mc-section-title {
-    font-size: 1.1rem; font-weight: 600; color: var(--mc-text);
+    font-family: 'Roboto', sans-serif; font-size: 1.1rem; font-weight: 500; color: var(--mc-text-dark);
     margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid transparent;
-    border-image: linear-gradient(90deg, var(--mc-magenta), var(--mc-gold), transparent) 1;
+    padding-bottom: 0.6rem;
+    border-bottom: 2px solid var(--mc-petrol);
 }
-.mc-section-title i { color: var(--mc-gold); }
+.mc-section-title i { color: var(--mc-petrol); }
 
-/* ----------------------------------------------------------
-   8. KPI Cards — Glass + Gold Accent + Animated Values
-   ---------------------------------------------------------- */
+/* 8. KPI Cards */
 .mc-kpi-card {
     background: var(--mc-bg-card);
-    backdrop-filter: blur(var(--mc-glass-blur)); -webkit-backdrop-filter: blur(var(--mc-glass-blur));
     border-radius: var(--mc-radius); padding: 1.25rem;
-    border: 1px solid var(--mc-glass-border);
+    border: 1px solid var(--mc-border);
     box-shadow: var(--mc-shadow); position: relative; overflow: hidden;
 }
 .mc-kpi-card::before {
     content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
-    background: linear-gradient(180deg, var(--mc-magenta), rgba(139,34,82,0.2));
+    background: var(--mc-petrol);
 }
 .mc-kpi-card:hover {
-    box-shadow: var(--mc-shadow-lg), 0 0 24px var(--mc-glow);
-    transform: translateY(-2px);
+    box-shadow: var(--mc-shadow-lg);
+    transform: translateY(-1px);
 }
 
-.mc-kpi-label { font-size: 0.78rem; color: var(--mc-text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.5rem; }
-.mc-kpi-value { font-size: 1.75rem; font-weight: 700; color: var(--mc-text); line-height: 1.2; }
+.mc-kpi-label { font-family: 'Roboto', sans-serif; font-size: 0.75rem; color: var(--mc-text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.5rem; }
+.mc-kpi-value { font-family: 'Roboto', sans-serif; font-size: 1.75rem; font-weight: 700; color: var(--mc-text-dark); line-height: 1.2; }
 .mc-kpi-trend { font-size: 0.8rem; margin-top: 0.35rem; }
 .mc-kpi-trend.up { color: var(--mc-success); }
 .mc-kpi-trend.down { color: var(--mc-danger); }
-.mc-kpi-icon { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 2.5rem; opacity: 0.06; color: var(--mc-text); }
+.mc-kpi-icon { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 2.5rem; opacity: 0.06; color: var(--mc-text-dark); }
 
-/* ----------------------------------------------------------
-   9. Tiles — 3D Tilt on Hover
-   ---------------------------------------------------------- */
+/* 9. Tiles */
 .mc-tiles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; }
 
 .mc-tile {
     background: var(--mc-bg-card);
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--mc-glass-border);
+    border: 1px solid var(--mc-border);
     border-radius: var(--mc-radius); padding: 1.25rem 0.75rem;
     text-align: center; cursor: pointer; text-decoration: none; color: var(--mc-text);
     display: flex; flex-direction: column; align-items: center; gap: 0.5rem; position: relative;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; perspective: 600px;
+    transition: all 0.25s ease;
 }
 .mc-tile:hover {
-    transform: translateY(-6px) rotateX(2deg) rotateY(-2deg);
-    box-shadow: var(--mc-shadow-lg), 0 0 24px var(--mc-glow);
-    border-color: rgba(139,34,82,0.3);
+    transform: translateY(-4px);
+    box-shadow: var(--mc-shadow-lg);
+    border-color: var(--mc-petrol);
     color: var(--mc-text);
 }
 
 .mc-tile-icon {
-    width: 48px; height: 48px; border-radius: 14px;
+    width: 48px; height: 48px; border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; color: white;
-    background: linear-gradient(135deg, var(--mc-navy), #2c3e64);
-    box-shadow: 0 4px 12px rgba(26,26,46,0.25);
-    transition: transform 0.3s, box-shadow 0.3s;
+    font-size: 1.4rem; color: #fff;
+    background: var(--mc-petrol);
+    transition: transform 0.2s;
 }
-.mc-tile:hover .mc-tile-icon { transform: scale(1.08); box-shadow: 0 6px 20px rgba(26,26,46,0.35); }
+.mc-tile:hover .mc-tile-icon { transform: scale(1.06); }
 .mc-tile-title { font-size: 0.8rem; font-weight: 500; line-height: 1.3; word-break: break-word; }
 
-.mc-tile-add { border: 2px dashed var(--mc-border); background: transparent; cursor: pointer; }
-.mc-tile-add:hover { border-color: var(--mc-gold); background: rgba(200,169,110,0.05); }
+.mc-tile-add { border: 2px dashed var(--mc-border); background: transparent; }
+.mc-tile-add:hover { border-color: var(--mc-petrol); background: var(--mc-accent); }
 
 .mc-tile-actions { position: absolute; top: 0.25rem; right: 0.25rem; display: none; gap: 0.15rem; }
 .mc-tile:hover .mc-tile-actions { display: flex; }
 .mc-tile-actions button {
-    background: var(--mc-bg-card); backdrop-filter: blur(8px);
+    background: var(--mc-bg-card);
     border: 1px solid var(--mc-border); border-radius: 6px;
     width: 24px; height: 24px; font-size: 0.7rem; cursor: pointer; color: var(--mc-text-muted);
     display: flex; align-items: center; justify-content: center; padding: 0;
 }
-.mc-tile-actions button:hover { color: var(--mc-gold); border-color: var(--mc-gold); }
+.mc-tile-actions button:hover { color: var(--mc-petrol); border-color: var(--mc-petrol); }
 
-/* ----------------------------------------------------------
-   10. Widget Cards
-   ---------------------------------------------------------- */
+/* 10. Widgets */
 .mc-widget {
-    background: var(--mc-bg-card); backdrop-filter: blur(var(--mc-glass-blur)); -webkit-backdrop-filter: blur(var(--mc-glass-blur));
-    border-radius: var(--mc-radius); box-shadow: var(--mc-shadow); border: 1px solid var(--mc-glass-border); padding: 1.25rem;
+    background: var(--mc-bg-card);
+    border-radius: var(--mc-radius); box-shadow: var(--mc-shadow);
+    border: 1px solid var(--mc-border); padding: 1.25rem;
 }
-.mc-widget-header { font-weight: 600; font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--mc-text); padding-bottom: 0.75rem; border-bottom: 1px solid var(--mc-border); }
-.mc-widget-header i { color: var(--mc-gold); }
+.mc-widget-header { font-family: 'Roboto', sans-serif; font-weight: 500; font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: var(--mc-text-dark); padding-bottom: 0.75rem; border-bottom: 1px solid var(--mc-border-light); }
+.mc-widget-header i { color: var(--mc-petrol); }
 
-/* ----------------------------------------------------------
-   11. Modal — Backdrop Blur
-   ---------------------------------------------------------- */
+/* 11. Modal */
 .mc-modal-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.3);
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    background: rgba(0,0,0,0.35);
     z-index: 500; display: flex; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
 }
 .mc-modal-overlay.active { opacity: 1; pointer-events: auto; }
 
 .mc-modal {
-    background: #fff;
+    background: var(--mc-bg-card);
     border-radius: var(--mc-radius); box-shadow: var(--mc-shadow-lg);
-    border: 1px solid #ddd;
+    border: 1px solid var(--mc-border);
     max-width: 700px; width: 92%; max-height: 82vh; overflow-y: auto; padding: 0;
-    animation: modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    animation: modalIn 0.25s ease-out;
 }
-@keyframes modalIn { from { transform: scale(0.92) translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes modalIn { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
 
-.mc-modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--mc-border); display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
+.mc-modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--mc-border); display: flex; align-items: center; justify-content: space-between; font-family: 'Roboto', sans-serif; font-weight: 500; color: var(--mc-text-dark); }
 .mc-modal-body { padding: 1.25rem; }
-.mc-modal-close { background: transparent; border: none; font-size: 1.25rem; cursor: pointer; color: var(--mc-text-muted); padding: 0.25rem; transition: color 0.2s, transform 0.2s; }
-.mc-modal-close:hover { color: var(--mc-text); transform: rotate(90deg); }
+.mc-modal-close { background: transparent; border: none; font-size: 1.25rem; cursor: pointer; color: var(--mc-text-muted); padding: 0.25rem; transition: color 0.2s; }
+.mc-modal-close:hover { color: var(--mc-text-dark); }
 
-/* ----------------------------------------------------------
-   12. Buttons — Glow Effect
-   ---------------------------------------------------------- */
+/* 12. Buttons — Pill Shape (Merkur Privatbank Style) */
 .btn-mc {
-    padding: 0.5rem 1.25rem; border-radius: var(--mc-radius-sm);
-    font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none;
-    display: inline-flex; align-items: center; gap: 0.4rem;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0.5rem 1.5rem; border-radius: var(--mc-radius-pill);
+    font-family: 'Roboto', sans-serif; font-size: 0.85rem; font-weight: 500;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;
+    transition: all 0.2s;
 }
 .btn-mc-primary {
-    background: linear-gradient(135deg, #8B2252, #6B3A5C); color: #fff;
-    box-shadow: 0 2px 8px rgba(139,34,82,0.2);
+    background: transparent; border: 2px solid var(--mc-petrol); color: var(--mc-petrol);
 }
-.btn-mc-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(139,34,82,0.3), 0 0 16px var(--mc-glow); }
-.btn-mc-outline { background: transparent; border: 1px solid var(--mc-border); color: var(--mc-text); }
-.btn-mc-outline:hover { border-color: var(--mc-gold); color: var(--mc-gold); box-shadow: 0 0 12px var(--mc-glow); }
-.btn-mc-gold { background: linear-gradient(135deg, var(--mc-gold), #b8994e); color: #1a1a2e; font-weight: 600; }
-.btn-mc-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(200,169,110,0.3); }
+.btn-mc-primary:hover { background: var(--mc-petrol); color: #fff; }
 
-/* ----------------------------------------------------------
-   13. Forms
-   ---------------------------------------------------------- */
+.btn-mc-outline { background: transparent; border: 2px solid var(--mc-text-dark); color: var(--mc-text-dark); }
+.btn-mc-outline:hover { background: var(--mc-text-dark); color: #fff; }
+
+.btn-mc-gold { background: var(--mc-gold); border: 2px solid var(--mc-gold); color: #fff; }
+.btn-mc-gold:hover { background: var(--mc-gold-light); border-color: var(--mc-gold-light); }
+
+.btn-mc-filled { background: var(--mc-petrol); border: 2px solid var(--mc-petrol); color: #fff; }
+.btn-mc-filled:hover { background: var(--mc-petrol-dark); border-color: var(--mc-petrol-dark); }
+
+/* 13. Forms */
 .mc-input {
     width: 100%; padding: 0.6rem 0.85rem;
     border: 1px solid var(--mc-border); border-radius: var(--mc-radius-sm);
-    background: var(--mc-surface); backdrop-filter: blur(8px);
-    color: var(--mc-text); font-size: 0.9rem;
-    transition: border-color 0.25s, box-shadow 0.25s;
+    background: var(--mc-bg-card); color: var(--mc-text-dark);
+    font-family: 'Open Sans', sans-serif; font-size: 0.9rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
-.mc-input:focus { outline: none; border-color: var(--mc-gold); box-shadow: 0 0 0 3px var(--mc-glow), 0 0 12px var(--mc-glow); }
-.mc-input::placeholder { color: var(--mc-text-muted); opacity: 0.6; }
+.mc-input:focus { outline: none; border-color: var(--mc-petrol); box-shadow: 0 0 0 3px rgba(0,81,90,0.1); }
+.mc-input::placeholder { color: var(--mc-text-muted); opacity: 0.7; }
 
-.mc-label { font-size: 0.825rem; font-weight: 500; color: var(--mc-text-muted); margin-bottom: 0.35rem; display: block; }
-select.mc-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2rem; }
+.mc-label { font-size: 0.8rem; font-weight: 600; color: var(--mc-text-muted); margin-bottom: 0.35rem; display: block; }
+select.mc-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2rem; }
 textarea.mc-input { resize: vertical; min-height: 80px; }
 
-/* ----------------------------------------------------------
-   14. Theme Toggle
-   ---------------------------------------------------------- */
+/* 14. Theme Toggle */
 .mc-theme-toggle {
-    background: var(--mc-bg-card); backdrop-filter: blur(8px);
-    border: 1px solid var(--mc-glass-border); border-radius: 50%;
+    background: var(--mc-bg-card);
+    border: 1px solid var(--mc-border); border-radius: 50%;
     width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
     cursor: pointer; color: var(--mc-text-muted); font-size: 1rem;
-    transition: all 0.3s;
+    transition: all 0.2s;
 }
-.mc-theme-toggle:hover { border-color: var(--mc-gold); color: var(--mc-gold); box-shadow: 0 0 16px var(--mc-glow); transform: rotate(15deg); }
+.mc-theme-toggle:hover { border-color: var(--mc-petrol); color: var(--mc-petrol); }
 
-/* ----------------------------------------------------------
-   15. Weather
-   ---------------------------------------------------------- */
+/* 15. Weather */
 .weather-current { display: flex; align-items: center; gap: 1rem; }
-.weather-temp { font-size: 2.25rem; font-weight: 700; line-height: 1; }
-.weather-icon { font-size: 2.5rem; }
+.weather-temp { font-family: 'Roboto', sans-serif; font-size: 2.25rem; font-weight: 300; line-height: 1; color: var(--mc-text-dark); }
+.weather-icon { font-size: 2.5rem; color: var(--mc-petrol); }
 .weather-forecast { display: flex; gap: 0.75rem; margin-top: 0.75rem; }
 .weather-day { text-align: center; font-size: 0.75rem; flex: 1; }
-.weather-day-icon { font-size: 1.25rem; margin: 0.25rem 0; }
+.weather-day-icon { font-size: 1.25rem; margin: 0.25rem 0; color: var(--mc-petrol); }
 .weather-day-temps { display: flex; justify-content: center; gap: 0.35rem; }
 .weather-day-temps .hi { font-weight: 600; }
 .weather-day-temps .lo { color: var(--mc-text-muted); }
 
-/* ----------------------------------------------------------
-   16. Dashboard Grid — Glass Charts
-   ---------------------------------------------------------- */
+/* 16. Dashboard Grid */
 .mc-dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
 .mc-chart-card {
-    background: var(--mc-bg-card); backdrop-filter: blur(var(--mc-glass-blur)); -webkit-backdrop-filter: blur(var(--mc-glass-blur));
-    border-radius: var(--mc-radius); border: 1px solid var(--mc-glass-border);
+    background: var(--mc-bg-card);
+    border-radius: var(--mc-radius); border: 1px solid var(--mc-border);
     padding: 1.25rem; box-shadow: var(--mc-shadow);
 }
-.mc-chart-card:hover { box-shadow: var(--mc-shadow-lg), 0 0 16px var(--mc-glow); }
-.mc-chart-title { font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem; color: var(--mc-text); }
+.mc-chart-card:hover { box-shadow: var(--mc-shadow-lg); }
+.mc-chart-title { font-family: 'Roboto', sans-serif; font-size: 0.875rem; font-weight: 500; margin-bottom: 1rem; color: var(--mc-text-dark); }
 
-/* ----------------------------------------------------------
-   17. Mobility Grid
-   ---------------------------------------------------------- */
+/* 17. Mobility Grid */
 .mc-mobility-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
 
-/* ----------------------------------------------------------
-   18. Scrollbar
-   ---------------------------------------------------------- */
-::-webkit-scrollbar { width: 7px; }
+/* 18. Scrollbar */
+::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--mc-border); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--mc-border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--mc-text-muted); }
 
-/* ----------------------------------------------------------
-   19. Dark Mode Overrides
-   ---------------------------------------------------------- */
-[data-theme="dark"] .mc-tile-icon { background: linear-gradient(135deg, #2a2a3a, #3a3a4c); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
-[data-theme="dark"] .btn-mc-primary { background: linear-gradient(135deg, #8B2252, #6B3A5C); }
-[data-theme="dark"] .mc-topbar { background: rgba(16,16,28,0.88); border-color: rgba(60,60,90,0.3); }
-[data-theme="dark"] .mc-input { background: rgba(16,16,32,0.6); }
-[data-theme="dark"] .mc-modal { background: #1e1e2e; border: 1px solid #3a3a50; }
-[data-theme="dark"] body { background: #0d0d18; }
+/* 19. Dark Mode Overrides */
+[data-theme="dark"] .mc-tile-icon { background: var(--mc-petrol-dark); }
+[data-theme="dark"] .mc-topbar { background: #16161e; border-color: var(--mc-border); }
+[data-theme="dark"] .mc-input { background: #18181f; }
+[data-theme="dark"] .mc-topbar-nav a.active { background: var(--mc-petrol-dark); }
 
-/* ----------------------------------------------------------
-   20. Fade-In on Scroll Animation
-   ---------------------------------------------------------- */
+/* 20. Fade-In Animation */
 .mc-fade-in {
-    opacity: 0; transform: translateY(20px);
-    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0; transform: translateY(16px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
 }
 .mc-fade-in.visible { opacity: 1; transform: none; }
 
-/* ----------------------------------------------------------
-   21. Responsive
-   ---------------------------------------------------------- */
+/* 21. Responsive */
 @media (min-width: 1600px) {
     .mc-main { padding: 2rem 4rem; }
     .mc-kpi-value { font-size: clamp(1.5rem, 2vw, 2.25rem); }
     .mc-card { padding: clamp(1.25rem, 1.5vw, 1.75rem); }
-    .mc-section-title { font-size: clamp(1.1rem, 1.2vw, 1.4rem); }
+    .mc-section-title { font-size: clamp(1.1rem, 1.2vw, 1.35rem); }
     .mc-chart-card { padding: clamp(1.25rem, 1.5vw, 2rem); }
 }
 @media (max-width: 1200px) { .mc-topbar-right .mc-topbar-user { display: none; } }
@@ -393,7 +351,6 @@ textarea.mc-input { resize: vertical; min-height: 80px; }
     .weather-temp { font-size: 1.75rem; }
     .mc-card { padding: 1rem; }
     .mc-section-title { font-size: 1rem; }
-    .mc-tile:hover { transform: translateY(-3px); }
 }
 @media (max-width: 480px) {
     .mc-topbar-brand span { display: none; }
@@ -404,9 +361,8 @@ textarea.mc-input { resize: vertical; min-height: 80px; }
     .mc-kpi-value { font-size: 1.1rem; }
 }
 
-/* ----------------------------------------------------------
-   22. Utility Classes
-   ---------------------------------------------------------- */
+/* 22. Utility */
+.text-petrol { color: var(--mc-petrol); }
 .text-gold { color: var(--mc-gold); }
 .text-muted { color: var(--mc-text-muted); }
 .text-success { color: var(--mc-success); }
