@@ -89,7 +89,7 @@
     setInterval(updateDeClock, 30000);
 </script>
 <!-- ===== RAG Wissenssuche Fenster ===== -->
-<div id="ragFenster" style="display:none; position:fixed; z-index:1001; top:10vh; left:calc(50vw - 300px); width:min(620px,calc(100vw - 2rem)); height:min(700px,calc(100vh - 4rem)); background:var(--mc-surface); border:1px solid var(--mc-border); border-radius:var(--mc-radius); box-shadow:0 8px 40px rgba(0,0,0,.25); flex-direction:column; overflow:hidden; resize:both; min-width:360px; min-height:400px;">
+<div id="ragFenster" style="display:none; position:fixed; z-index:1001; top:10vh; left:calc(50vw - 300px); width:min(620px,calc(100vw - 2rem)); height:min(700px,calc(100vh - 4rem)); background:#fff; border:1px solid #ddd; border-radius:var(--mc-radius); box-shadow:0 8px 40px rgba(0,0,0,.25); flex-direction:column; overflow:hidden; resize:both; min-width:360px; min-height:400px;">
     <div id="ragHeader" style="padding:.65rem 1rem; background:linear-gradient(135deg,var(--mc-navy),#2c3e64); color:#fff; display:flex; align-items:center; justify-content:space-between; cursor:move; user-select:none; flex-shrink:0;">
         <div style="display:flex; align-items:center; gap:.5rem;">
             <i class="bi bi-book" style="color:var(--mc-gold); font-size:1.15rem;"></i>
@@ -105,11 +105,11 @@
     <!-- Auswahl-Screen -->
     <div id="ragAuswahl" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:2rem;">
         <div style="font-size:1.1rem; font-weight:600; color:var(--mc-text); margin-bottom:.5rem;">Was möchtest du tun?</div>
-        <button onclick="ragSucheModus()" style="width:100%; max-width:360px; padding:1.25rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius); background:var(--mc-bg-card); cursor:pointer; text-align:left; display:flex; align-items:center; gap:1rem; transition:all .2s;" onmouseover="this.style.borderColor='var(--mc-gold)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--mc-border)';this.style.transform=''">
+        <button onclick="ragSucheModus()" style="width:100%; max-width:360px; padding:1.25rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius); background:var(--mc-bg); cursor:pointer; text-align:left; display:flex; align-items:center; gap:1rem; transition:all .2s;" onmouseover="this.style.borderColor='var(--mc-gold)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--mc-border)';this.style.transform=''">
             <div style="width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,var(--mc-navy),#2c3e64); display:flex; align-items:center; justify-content:center;"><i class="bi bi-search" style="color:var(--mc-gold); font-size:1.3rem;"></i></div>
             <div><div style="font-weight:600; color:var(--mc-text);">Inhalte durchsuchen</div><div style="font-size:.8rem; color:var(--mc-text-muted);">Stelle Fragen zu allen hochgeladenen Dokumenten</div></div>
         </button>
-        <button onclick="aiOeffnen(); ragFensterSchliessen();" style="width:100%; max-width:360px; padding:1.25rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius); background:var(--mc-bg-card); cursor:pointer; text-align:left; display:flex; align-items:center; gap:1rem; transition:all .2s;" onmouseover="this.style.borderColor='var(--mc-gold)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--mc-border)';this.style.transform=''">
+        <button onclick="aiOeffnen(); ragFensterSchliessen();" style="width:100%; max-width:360px; padding:1.25rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius); background:var(--mc-bg); cursor:pointer; text-align:left; display:flex; align-items:center; gap:1rem; transition:all .2s;" onmouseover="this.style.borderColor='var(--mc-gold)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--mc-border)';this.style.transform=''">
             <div style="width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#c8a96e,#b8994e); display:flex; align-items:center; justify-content:center;"><i class="bi bi-stars" style="color:#fff; font-size:1.3rem;"></i></div>
             <div><div style="font-weight:600; color:var(--mc-text);">KI-Assistent</div><div style="font-size:.8rem; color:var(--mc-text-muted);">Allgemeine Fragen &amp; Bankwissen</div></div>
         </button>
@@ -267,6 +267,8 @@ if (ragH) {
 <style>
 #ragFenster .search-spinner{border:3px solid var(--mc-border);border-top-color:var(--mc-gold);border-radius:50%;animation:ragSpin .8s linear infinite;}
 @@keyframes ragSpin{to{transform:rotate(360deg);}}
+[data-theme="dark"] #ragFenster{background:#1e1e2e !important; border-color:#3a3a50 !important;}
+[data-theme="dark"] #aiModal{background:#1e1e2e !important; border-color:#3a3a50 !important;}
 </style>
 
 <!-- ===== KI-Assistent FAB ===== -->
@@ -277,7 +279,7 @@ if (ragH) {
 
 <!-- ===== KI-Assistent Chat-Modal ===== -->
 <div id="aiModal" role="dialog" aria-label="KI-Assistent"
-     style="display:none; position:fixed; right:1.25rem; bottom:1.25rem; width:min(420px, calc(100vw - 2rem)); height:min(620px, calc(100vh - 2rem)); z-index:1000; background:var(--mc-surface); border:1px solid var(--mc-border); border-radius:var(--mc-radius); box-shadow:var(--mc-shadow-lg); flex-direction:column; overflow:hidden;">
+     style="display:none; position:fixed; right:1.25rem; bottom:1.25rem; width:min(420px, calc(100vw - 2rem)); height:min(620px, calc(100vh - 2rem)); z-index:1000; background:#fff; border:1px solid #ddd; border-radius:var(--mc-radius); box-shadow:var(--mc-shadow-lg); flex-direction:column; overflow:hidden;">
     <div style="padding:.75rem 1rem; background:linear-gradient(135deg, var(--mc-navy), #2c3e64); color:#fff; display:flex; align-items:center; justify-content:space-between;">
         <div style="display:flex; align-items:center; gap:.5rem;">
             <i class="bi bi-stars" style="color:var(--mc-gold); font-size:1.25rem;"></i>
