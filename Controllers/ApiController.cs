@@ -155,12 +155,15 @@ public class ApiController : Controller
             var fromId = fromDoc.RootElement[0].GetProperty("id").GetString();
             var toId = toDoc.RootElement[0].GetProperty("id").GetString();
 
-            // Abfahrtszeit als ISO-String mit Berlin-Offset aufbauen
             var depParam = "";
-            if (!string.IsNullOrEmpty(date))
             {
-                var t = string.IsNullOrEmpty(time) ? "00:00" : time;
-                depParam = $"&departure={Uri.EscapeDataString(date + "T" + t + ":00+02:00")}";
+                var berlinTz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
+                var berlinNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, berlinTz);
+                var d = string.IsNullOrEmpty(date) ? berlinNow.Date : DateTime.Parse(date);
+                var t = string.IsNullOrEmpty(time) ? berlinNow.TimeOfDay : TimeSpan.Parse(time);
+                var local = d + t;
+                var dto = new DateTimeOffset(local, berlinTz.GetUtcOffset(local));
+                depParam = $"&departure={Uri.EscapeDataString(dto.ToString("O"))}";
             }
 
             var klasse = ersteKlasse ? "&firstClass=true" : "";
@@ -253,11 +256,17 @@ public class ApiController : Controller
             var toId = toDoc.RootElement[0].GetProperty("id").GetString();
 
             var depParam = "";
-            if (!string.IsNullOrEmpty(time))
             {
                 var berlinTz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
-                var today = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, berlinTz).ToString("yyyy-MM-dd");
-                depParam = $"&departure={Uri.EscapeDataString(today + "T" + time + ":00+02:00")}";
+                var berlinNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, berlinTz);
+                var d = berlinNow.Date;
+                var t = string.IsNullOrEmpty(time) ? berlinNow.TimeOfDay : TimeSpan.Parse(time);
+                var local = d + t;
+                // Wenn gewählte Zeit vor aktueller Zeit liegt → nächster Tag
+                if (local < berlinNow.AddMinutes(-5))
+                    local = local.AddDays(1);
+                var dto = new DateTimeOffset(local, berlinTz.GetUtcOffset(local));
+                depParam = $"&departure={Uri.EscapeDataString(dto.ToString("O"))}";
             }
 
             var url = $"https://v6.db.transport.rest/journeys?from={fromId}&to={toId}{depParam}&results=6&suburban=true&subway=true&tram=true&bus=true&regional=true&nationalExpress=false&national=false";
