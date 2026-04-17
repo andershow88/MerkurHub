@@ -1,0 +1,444 @@
+@model List<MerkurHub.Models.Tile>
+@{ ViewData["Title"] = "Hub"; }
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     OBERER BEREICH: Wetter + Mobilität
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="mc-section">
+    <div class="mc-section-title"><i class="bi bi-cloud-sun"></i> Informationen &amp; Mobilität</div>
+
+    <div style="display:grid; grid-template-columns:1fr 300px; gap:1rem; align-items:start;">
+
+        <!-- Mobilität -->
+        <div class="mc-mobility-grid">
+            <!-- Deutsche Bahn -->
+            <div class="mc-card">
+                <div class="mc-card-header"><i class="bi bi-train-front"></i> Deutsche Bahn</div>
+                <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+                    <input type="text" class="mc-input" id="bahnFrom" placeholder="Von (z.B. München Hbf)" style="flex:1; min-width:120px;" />
+                    <input type="text" class="mc-input" id="bahnTo" placeholder="Nach (z.B. Berlin Hbf)" style="flex:1; min-width:120px;" />
+                    <input type="date" class="mc-input" id="bahnDate" style="width:150px;" />
+                    <button class="btn-mc btn-mc-primary" onclick="bahnSuchen()"><i class="bi bi-search"></i> Suchen</button>
+                </div>
+            </div>
+
+            <!-- MVG München -->
+            <div class="mc-card">
+                <div class="mc-card-header"><i class="bi bi-bus-front"></i> MVG München</div>
+                <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+                    <input type="text" class="mc-input" id="mvgFrom" placeholder="Von" style="flex:1; min-width:140px;" />
+                    <input type="text" class="mc-input" id="mvgTo" placeholder="Nach" style="flex:1; min-width:140px;" />
+                    <button class="btn-mc btn-mc-primary" onclick="mvgSuchen()"><i class="bi bi-search"></i></button>
+                </div>
+            </div>
+
+            <!-- Verkehr -->
+            <div class="mc-card">
+                <div class="mc-card-header"><i class="bi bi-car-front-fill"></i> Verkehrslage</div>
+                <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+                    <input type="text" class="mc-input" id="trafficFrom" placeholder="Startort" style="flex:1; min-width:140px;" />
+                    <input type="text" class="mc-input" id="trafficTo" placeholder="Zielort" style="flex:1; min-width:140px;" />
+                    <button class="btn-mc btn-mc-primary" onclick="verkehrSuchen()"><i class="bi bi-search"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wetter Widget -->
+        <div class="mc-card" id="weatherWidget">
+            <div class="mc-card-header"><i class="bi bi-cloud-sun-fill"></i> Wetter <span id="weatherLocation" style="font-weight:400; font-size:.8rem; color:var(--mc-text-muted); margin-left:auto;"></span></div>
+            <div class="weather-current">
+                <div class="weather-icon" id="weatherIcon">--</div>
+                <div>
+                    <div class="weather-temp" id="weatherTemp">--°</div>
+                    <div style="font-size:.8rem; color:var(--mc-text-muted);" id="weatherDesc">Laden...</div>
+                </div>
+            </div>
+            <div class="weather-forecast" id="weatherForecast"></div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MITTLERER BEREICH: Konfigurierbare Kacheln
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="mc-section">
+    <div class="mc-section-title"><i class="bi bi-bookmark-star"></i> Meine Schnellzugriffe</div>
+
+    <div class="mc-tiles-grid" id="tilesGrid">
+        <!-- Tiles werden per JS geladen -->
+        <div class="mc-tile mc-tile-add" onclick="tileDialog()">
+            <div class="mc-tile-icon" style="background:transparent; border:2px dashed var(--mc-border); color:var(--mc-text-muted);">
+                <i class="bi bi-plus-lg"></i>
+            </div>
+            <div class="mc-tile-title" style="color:var(--mc-text-muted);">Hinzufügen</div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     UNTERER BEREICH: Dashboard mit Kennzahlen
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="mc-section">
+    <div class="mc-section-title"><i class="bi bi-graph-up-arrow"></i> Dashboard &amp; Kennzahlen</div>
+
+    <!-- KPI Karten -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; margin-bottom:1.5rem;">
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Kernkapital</div>
+            <div class="mc-kpi-value" style="font-size:1.35rem;">292.052.494,75 €</div>
+            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> per letzter Werktag</div>
+            <i class="bi bi-bank mc-kpi-icon"></i>
+        </div>
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Großkreditobergrenze (25%)</div>
+            <div class="mc-kpi-value" style="font-size:1.35rem;">73.013.123,00 €</div>
+            <div class="mc-kpi-trend">25 % des Kernkapitals</div>
+            <i class="bi bi-shield-check mc-kpi-icon"></i>
+        </div>
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Großkreditgrenze (10%)</div>
+            <div class="mc-kpi-value" style="font-size:1.35rem;">29.205.249,48 €</div>
+            <div class="mc-kpi-trend">10 % des Kernkapitals</div>
+            <i class="bi bi-exclamation-triangle mc-kpi-icon"></i>
+        </div>
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Assets under Management</div>
+            <div class="mc-kpi-value">1,84 Mrd. €</div>
+            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> +3,2 % YTD</div>
+            <i class="bi bi-pie-chart mc-kpi-icon"></i>
+        </div>
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Leasing-Volumen</div>
+            <div class="mc-kpi-value">148,3 Mio. €</div>
+            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> +12 Anträge MTD</div>
+            <i class="bi bi-file-earmark-text mc-kpi-icon"></i>
+        </div>
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Neukunden Q1</div>
+            <div class="mc-kpi-value">127</div>
+            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> +18 % ggü. Vorjahr</div>
+            <i class="bi bi-people mc-kpi-icon"></i>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="mc-dashboard-grid">
+        <div class="mc-chart-card">
+            <div class="mc-chart-title"><i class="bi bi-building" style="color:var(--mc-gold);"></i> Bauträgerbereich</div>
+            <canvas id="chartBautraeger" height="220"></canvas>
+        </div>
+        <div class="mc-chart-card">
+            <div class="mc-chart-title"><i class="bi bi-file-earmark-bar-graph" style="color:var(--mc-gold);"></i> Leasing — Anträge &amp; Volumen</div>
+            <canvas id="chartLeasing" height="220"></canvas>
+        </div>
+        <div class="mc-chart-card">
+            <div class="mc-chart-title"><i class="bi bi-clipboard-data" style="color:var(--mc-gold);"></i> Kreditmeldewesen — Obligo-Verteilung</div>
+            <canvas id="chartKredit" height="220"></canvas>
+        </div>
+        <div class="mc-chart-card">
+            <div class="mc-chart-title"><i class="bi bi-person-plus" style="color:var(--mc-gold);"></i> Neukunden-Onboarding &amp; VV</div>
+            <canvas id="chartOnboarding" height="220"></canvas>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MODALS
+     ═══════════════════════════════════════════════════════════════════════ -->
+
+<!-- Tile Dialog -->
+<div class="mc-modal-overlay" id="tileModal">
+    <div class="mc-modal">
+        <div class="mc-modal-header">
+            <span id="tileModalTitle">Schnellzugriff hinzufügen</span>
+            <button class="mc-modal-close" onclick="tileModalClose()">&times;</button>
+        </div>
+        <div class="mc-modal-body">
+            <input type="hidden" id="tileEditId" />
+            <label class="mc-label">Titel</label>
+            <input class="mc-input" id="tileTitel" placeholder="z.B. Confluence" style="margin-bottom:.75rem;" />
+            <label class="mc-label">URL</label>
+            <input class="mc-input" id="tileUrl" placeholder="https://..." style="margin-bottom:.75rem;" />
+            <label class="mc-label">Icon (Bootstrap Icon Name)</label>
+            <input class="mc-input" id="tileIcon" placeholder="z.B. bi-globe, bi-journal, bi-gear" style="margin-bottom:.75rem;" />
+            <label class="mc-label">Farbe</label>
+            <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+                <button class="color-pick" data-c="#1a1a2e" style="background:#1a1a2e;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#c8a96e" style="background:#c8a96e;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#28a745" style="background:#28a745;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#dc3545" style="background:#dc3545;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#17a2b8" style="background:#17a2b8;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#6f42c1" style="background:#6f42c1;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#e6a817" style="background:#e6a817;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#6b6b6b" style="background:#6b6b6b;" onclick="pickColor(this)"></button>
+            </div>
+            <input type="hidden" id="tileFarbe" value="#1a1a2e" />
+            <button class="btn-mc btn-mc-gold" style="width:100%;" onclick="tileSpeichern()">Speichern</button>
+        </div>
+    </div>
+</div>
+<style>.color-pick{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .2s;}.color-pick:hover,.color-pick.active{border-color:var(--mc-gold);transform:scale(1.15);}</style>
+
+<!-- Ergebnis-Modal -->
+<div class="mc-modal-overlay" id="resultModal">
+    <div class="mc-modal" style="max-width:700px;">
+        <div class="mc-modal-header">
+            <span id="resultTitle">Ergebnis</span>
+            <button class="mc-modal-close" onclick="document.getElementById('resultModal').classList.remove('active')">&times;</button>
+        </div>
+        <div class="mc-modal-body" id="resultBody"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+// ═══ Wetter ═══════════════════════════════════════════════════════════════════
+const weatherCodes = {0:'bi-sun-fill',1:'bi-cloud-sun',2:'bi-cloud-sun',3:'bi-clouds',45:'bi-cloud-fog',48:'bi-cloud-fog',
+    51:'bi-cloud-drizzle',53:'bi-cloud-drizzle',55:'bi-cloud-drizzle',
+    61:'bi-cloud-rain',63:'bi-cloud-rain-heavy',65:'bi-cloud-rain-heavy',
+    71:'bi-snow',73:'bi-snow',75:'bi-snow2',77:'bi-snow',
+    80:'bi-cloud-rain',81:'bi-cloud-rain-heavy',82:'bi-cloud-rain-heavy',
+    95:'bi-cloud-lightning-rain',96:'bi-cloud-lightning-rain',99:'bi-cloud-lightning-rain'};
+const weatherLabels = {0:'Klar',1:'Leicht bewölkt',2:'Teilweise bewölkt',3:'Bewölkt',45:'Nebel',48:'Nebel',
+    51:'Nieselregen',53:'Nieselregen',55:'Nieselregen',61:'Regen',63:'Starker Regen',65:'Starker Regen',
+    71:'Leichter Schnee',73:'Schnee',75:'Starker Schnee',80:'Regenschauer',95:'Gewitter'};
+const dayNames = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+function loadWeather() {
+    if (!navigator.geolocation) { document.getElementById('weatherDesc').textContent = 'Geolocation nicht verfügbar'; return; }
+    navigator.geolocation.getCurrentPosition(async pos => {
+        const {latitude:lat, longitude:lon} = pos.coords;
+        try {
+            const r = await fetch(`/api/Weather?lat=${lat}&lon=${lon}`);
+            const d = await r.json();
+            document.getElementById('weatherTemp').textContent = Math.round(d.current.temperature_2m) + '°C';
+            const code = d.current.weather_code;
+            document.getElementById('weatherIcon').innerHTML = `<i class="${weatherCodes[code]||'bi-cloud'}"></i>`;
+            document.getElementById('weatherDesc').textContent = weatherLabels[code] || 'Unbekannt';
+            // Reverse geocode
+            try {
+                const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+                const gd = await geo.json();
+                document.getElementById('weatherLocation').textContent = gd.address?.city || gd.address?.town || gd.address?.village || '';
+            } catch{}
+            // Forecast
+            const fc = document.getElementById('weatherForecast');
+            fc.innerHTML = '';
+            for (let i = 0; i < d.daily.time.length; i++) {
+                const dt = new Date(d.daily.time[i]);
+                fc.innerHTML += `<div class="weather-day">
+                    <div>${dayNames[dt.getDay()]}</div>
+                    <div class="weather-day-icon"><i class="${weatherCodes[d.daily.weather_code[i]]||'bi-cloud'}"></i></div>
+                    <div class="weather-day-temps"><span class="hi">${Math.round(d.daily.temperature_2m_max[i])}°</span><span class="lo">${Math.round(d.daily.temperature_2m_min[i])}°</span></div>
+                </div>`;
+            }
+        } catch(e) { document.getElementById('weatherDesc').textContent = 'Fehler beim Laden'; }
+    }, () => {
+        // Fallback: München
+        document.getElementById('weatherLocation').textContent = 'München (Standard)';
+        fetch('/api/Weather?lat=48.14&lon=11.58').then(r=>r.json()).then(d=>{
+            document.getElementById('weatherTemp').textContent = Math.round(d.current.temperature_2m) + '°C';
+            document.getElementById('weatherIcon').innerHTML = `<i class="${weatherCodes[d.current.weather_code]||'bi-cloud'}"></i>`;
+            document.getElementById('weatherDesc').textContent = weatherLabels[d.current.weather_code] || '';
+            const fc = document.getElementById('weatherForecast'); fc.innerHTML = '';
+            for (let i=0;i<d.daily.time.length;i++){const dt=new Date(d.daily.time[i]);fc.innerHTML+=`<div class="weather-day"><div>${dayNames[dt.getDay()]}</div><div class="weather-day-icon"><i class="${weatherCodes[d.daily.weather_code[i]]||'bi-cloud'}"></i></div><div class="weather-day-temps"><span class="hi">${Math.round(d.daily.temperature_2m_max[i])}°</span><span class="lo">${Math.round(d.daily.temperature_2m_min[i])}°</span></div></div>`;}
+        }).catch(()=>{});
+    });
+}
+loadWeather();
+
+// ═══ Mobilität ════════════════════════════════════════════════════════════════
+document.getElementById('bahnDate').valueAsDate = new Date();
+
+async function bahnSuchen() {
+    const from = document.getElementById('bahnFrom').value;
+    const to = document.getElementById('bahnTo').value;
+    const date = document.getElementById('bahnDate').value;
+    if (!from || !to) return;
+    const r = await fetch(`/api/BahnSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}`);
+    const data = await r.json();
+    let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-train-front"></i> ${from} → ${to} · ${date}</div>`;
+    html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;">';
+    html += '<thead><tr style="border-bottom:2px solid var(--mc-border);text-align:left;"><th style="padding:.5rem;">Abfahrt</th><th>Ankunft</th><th>Dauer</th><th>Umst.</th><th>Züge</th><th>Preis</th></tr></thead><tbody>';
+    data.forEach(c => {
+        html += `<tr style="border-bottom:1px solid var(--mc-border);"><td style="padding:.5rem;font-weight:600;">${c.abfahrt}</td><td>${c.ankunft}</td><td>${c.dauer}</td><td>${c.umstiege}</td><td style="font-size:.8rem;">${c.zuege}</td><td style="color:var(--mc-gold);font-weight:600;">${c.preis}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    html += `<div style="margin-top:1rem;text-align:center;"><a href="https://www.bahn.de" target="_blank" class="btn-mc btn-mc-outline" style="text-decoration:none;">Auf bahn.de buchen <i class="bi bi-box-arrow-up-right"></i></a></div>`;
+    showResult('Deutsche Bahn — Verbindungen', html);
+}
+
+async function mvgSuchen() {
+    const from = document.getElementById('mvgFrom').value;
+    const to = document.getElementById('mvgTo').value;
+    if (!from || !to) return;
+    const r = await fetch(`/api/MvgSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    const data = await r.json();
+    let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-bus-front"></i> ${from} → ${to}</div>`;
+    html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;">';
+    html += '<thead><tr style="border-bottom:2px solid var(--mc-border);text-align:left;"><th style="padding:.5rem;">Abfahrt</th><th>Linie</th><th>Richtung</th><th>Dauer</th><th>Typ</th></tr></thead><tbody>';
+    data.forEach(c => {
+        const badge = c.typ === 'U-Bahn' ? 'background:#006CB7;' : c.typ === 'S-Bahn' ? 'background:#408335;' : c.typ === 'Tram' ? 'background:#D4002A;' : 'background:var(--mc-primary);';
+        html += `<tr style="border-bottom:1px solid var(--mc-border);"><td style="padding:.5rem;font-weight:600;">${c.abfahrt}</td><td><span style="${badge}color:#fff;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:600;">${c.linie}</span></td><td>${c.richtung}</td><td>${c.dauer}</td><td style="font-size:.8rem;">${c.typ}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    html += `<div style="margin-top:1rem;text-align:center;"><a href="https://www.mvg.de" target="_blank" class="btn-mc btn-mc-outline" style="text-decoration:none;">MVG.de öffnen <i class="bi bi-box-arrow-up-right"></i></a></div>`;
+    showResult('MVG München — Verbindungen', html);
+}
+
+async function verkehrSuchen() {
+    const from = document.getElementById('trafficFrom').value;
+    const to = document.getElementById('trafficTo').value;
+    if (!from || !to) return;
+    const r = await fetch(`/api/Traffic?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    const d = await r.json();
+    const statusColor = d.status === 'frei' ? 'var(--mc-success)' : d.status === 'stau' ? 'var(--mc-danger)' : 'var(--mc-warning)';
+    const statusIcon = d.status === 'frei' ? 'bi-emoji-smile' : d.status === 'stau' ? 'bi-exclamation-octagon' : 'bi-exclamation-triangle';
+    let html = `<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+        <div style="font-size:2.5rem;color:${statusColor};"><i class="bi ${statusIcon}"></i></div>
+        <div><div style="font-size:1.1rem;font-weight:600;">${d.strecke}</div>
+        <div style="color:${statusColor};font-weight:600;text-transform:uppercase;">${d.status}</div>
+        <div style="font-size:.85rem;color:var(--mc-text-muted);">Geschätzte Fahrzeit: ${d.dauer}</div></div></div>`;
+    if (d.staus?.length) { html += '<div style="margin-bottom:.5rem;"><strong>Staus:</strong></div><ul style="margin:0 0 .75rem 1.25rem;">'; d.staus.forEach(s => html += `<li>${s}</li>`); html += '</ul>'; }
+    if (d.baustellen?.length) { html += '<div style="margin-bottom:.5rem;"><strong>Baustellen:</strong></div><ul style="margin:0 0 .75rem 1.25rem;">'; d.baustellen.forEach(s => html += `<li>${s}</li>`); html += '</ul>'; }
+    if (d.hinweise?.length) { html += '<div style="margin-bottom:.5rem;"><strong>Hinweise:</strong></div><ul style="margin:0 0 .75rem 1.25rem;">'; d.hinweise.forEach(s => html += `<li>${s}</li>`); html += '</ul>'; }
+    showResult('Verkehrslage', html);
+}
+
+function showResult(title, html) {
+    document.getElementById('resultTitle').textContent = title;
+    document.getElementById('resultBody').innerHTML = html;
+    document.getElementById('resultModal').classList.add('active');
+}
+
+// ═══ Tiles ════════════════════════════════════════════════════════════════════
+let tilesFarbe = '#1a1a2e';
+
+function pickColor(el) {
+    document.querySelectorAll('.color-pick').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    tilesFarbe = el.dataset.c;
+    document.getElementById('tileFarbe').value = tilesFarbe;
+}
+
+async function loadTiles() {
+    const r = await fetch('/api/Tiles');
+    const tiles = await r.json();
+    const grid = document.getElementById('tilesGrid');
+    const addBtn = grid.querySelector('.mc-tile-add');
+    grid.querySelectorAll('.mc-tile:not(.mc-tile-add)').forEach(el => el.remove());
+    tiles.forEach(t => {
+        const el = document.createElement('a');
+        el.className = 'mc-tile';
+        el.href = t.url;
+        el.target = '_blank';
+        el.innerHTML = `<div class="mc-tile-actions">
+            <button onclick="event.preventDefault();event.stopPropagation();tileBearbeiten(${t.id},'${esc(t.titel)}','${esc(t.url)}','${esc(t.icon||'')}','${esc(t.farbe||'#1a1a2e')}')"><i class="bi bi-pencil"></i></button>
+            <button onclick="event.preventDefault();event.stopPropagation();tileLoeschen(${t.id})"><i class="bi bi-trash"></i></button>
+        </div>
+        <div class="mc-tile-icon" style="background:${t.farbe||'linear-gradient(135deg,#1a1a2e,#2c3e64)'};">
+            <i class="bi ${t.icon||'bi-globe'}"></i>
+        </div>
+        <div class="mc-tile-title">${esc(t.titel)}</div>`;
+        grid.insertBefore(el, addBtn);
+    });
+}
+
+function esc(s) { return s ? s.replace(/'/g, "\\'").replace(/"/g, '&quot;') : ''; }
+
+function tileDialog(id, titel, url, icon, farbe) {
+    document.getElementById('tileEditId').value = id || '';
+    document.getElementById('tileTitel').value = titel || '';
+    document.getElementById('tileUrl').value = url || '';
+    document.getElementById('tileIcon').value = icon || '';
+    tilesFarbe = farbe || '#1a1a2e';
+    document.getElementById('tileFarbe').value = tilesFarbe;
+    document.querySelectorAll('.color-pick').forEach(b => { b.classList.toggle('active', b.dataset.c === tilesFarbe); });
+    document.getElementById('tileModalTitle').textContent = id ? 'Schnellzugriff bearbeiten' : 'Schnellzugriff hinzufügen';
+    document.getElementById('tileModal').classList.add('active');
+}
+function tileModalClose() { document.getElementById('tileModal').classList.remove('active'); }
+
+function tileBearbeiten(id, titel, url, icon, farbe) { tileDialog(id, titel, url, icon, farbe); }
+
+async function tileLoeschen(id) {
+    if (!confirm('Schnellzugriff löschen?')) return;
+    await fetch('/api/TilesDelete/' + id, { method: 'DELETE' });
+    loadTiles();
+}
+
+async function tileSpeichern() {
+    const id = document.getElementById('tileEditId').value;
+    const body = {
+        titel: document.getElementById('tileTitel').value,
+        url: document.getElementById('tileUrl').value,
+        icon: document.getElementById('tileIcon').value,
+        farbe: document.getElementById('tileFarbe').value
+    };
+    if (id) {
+        await fetch('/api/TilesUpdate/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    } else {
+        await fetch('/api/TilesCreate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    }
+    tileModalClose();
+    loadTiles();
+}
+loadTiles();
+
+// ═══ Dashboard Charts ═════════════════════════════════════════════════════════
+const chartColors = { gold: '#c8a96e', navy: '#1a1a2e', success: '#28a745', info: '#17a2b8', danger: '#dc3545', warning: '#e6a817', muted: '#8a8a8a' };
+Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--mc-text-muted').trim() || '#888';
+Chart.defaults.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--mc-border').trim() || '#e0e0e0';
+
+// Bauträger
+new Chart(document.getElementById('chartBautraeger'), {
+    type: 'bar',
+    data: {
+        labels: ['Unterbeteiligungen', 'Verkaufte Einheiten', 'VO Bauträger'],
+        datasets: [{
+            label: 'Anzahl',
+            data: [42, 187, 23],
+            backgroundColor: [chartColors.navy, chartColors.gold, chartColors.info],
+            borderRadius: 6
+        }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+
+// Leasing
+new Chart(document.getElementById('chartLeasing'), {
+    type: 'line',
+    data: {
+        labels: ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'],
+        datasets: [
+            { label: 'Anträge', data: [34,28,41,38,45,52,48,55,62,58,47,0], borderColor: chartColors.gold, backgroundColor: 'rgba(200,169,110,0.1)', fill: true, tension: 0.3 },
+            { label: 'Volumen (Mio. €)', data: [8.2,6.5,11.3,9.8,12.1,14.7,13.2,15.8,18.4,16.9,12.3,0], borderColor: chartColors.navy, borderDash: [5,5], tension: 0.3, yAxisID: 'y1' }
+        ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true, title: { display: true, text: 'Anträge' } }, y1: { position: 'right', beginAtZero: true, title: { display: true, text: 'Mio. €' }, grid: { drawOnChartArea: false } } } }
+});
+
+// Kreditmeldewesen — Donut
+new Chart(document.getElementById('chartKredit'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Firmenkredite', 'Bauträger', 'Leasing', 'Privatkredite', 'Sonstige'],
+        datasets: [{ data: [38, 22, 18, 14, 8], backgroundColor: [chartColors.navy, chartColors.gold, chartColors.info, chartColors.success, chartColors.muted], borderWidth: 0 }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, cutout: '65%' }
+});
+
+// Onboarding
+new Chart(document.getElementById('chartOnboarding'), {
+    type: 'bar',
+    data: {
+        labels: ['Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026'],
+        datasets: [
+            { label: 'Neukunden', data: [98, 112, 105, 127, 84], backgroundColor: chartColors.gold, borderRadius: 6 },
+            { label: 'Abgeschl. VV', data: [45, 52, 48, 61, 38], backgroundColor: chartColors.navy, borderRadius: 6 }
+        ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+});
+</script>
+}

@@ -1,0 +1,13 @@
+bin/
+obj/
+*.user
+*.suo
+.DS_Store
+**/.DS_Store
+*.db
+*.db-shm
+*.db-wal
+.vs/
+.idea/
+*.swp
+.claude/worktrees/

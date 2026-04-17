@@ -1,0 +1,71 @@
+@{
+    var userName = User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value ?? User.Identity?.Name;
+}
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(ViewData["Title"] ?? "MerkurHub")</title>
+    <link rel="icon" type="image/x-icon" href="~/favicon.ico" />
+    <link rel="stylesheet" href="~/css/merkur.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function(){var t=localStorage.getItem('mc-theme')||'light';document.documentElement.setAttribute('data-theme',t);})();
+    </script>
+</head>
+<body>
+
+<nav class="mc-topbar">
+    <div class="mc-topbar-brand">
+        <img src="~/images/merkur-logo.svg" alt="Merkur" style="height:34px;" />
+        <span style="font-size:1.15rem; font-weight:700; color:var(--mc-gold);">MerkurHub</span>
+    </div>
+
+    <div class="mc-topbar-nav">
+        <a href="/Hub/Index" class="@(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
+            <i class="bi bi-grid-1x2-fill"></i> Hub
+        </a>
+    </div>
+
+    <div class="mc-topbar-right">
+        <span class="mc-topbar-user d-none-sm">
+            <i class="bi bi-person-circle"></i> @userName
+        </span>
+        <button class="mc-theme-toggle" id="themeToggle" title="Dark/Light Mode">
+            <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+        </button>
+        <form method="post" action="/Account/Logout" style="margin:0;">
+            <button type="submit" class="mc-theme-toggle" title="Abmelden">
+                <i class="bi bi-box-arrow-right"></i>
+            </button>
+        </form>
+    </div>
+</nav>
+
+<div class="mc-main">
+    @RenderBody()
+</div>
+
+<script>
+    const stored = localStorage.getItem('mc-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', stored);
+    updateThemeIcon(stored);
+
+    document.getElementById('themeToggle')?.addEventListener('click', function () {
+        const cur = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('mc-theme', next);
+        updateThemeIcon(next);
+    });
+
+    function updateThemeIcon(t) {
+        const i = document.getElementById('themeIcon');
+        if (i) i.className = t === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+    }
+</script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

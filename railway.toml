@@ -1,0 +1,9 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "dotnet MerkurHub.dll"
+healthcheckPath = "/Account/Login"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
