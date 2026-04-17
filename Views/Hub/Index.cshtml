@@ -303,28 +303,81 @@ window.addEventListener('scroll', function() {
     document.querySelectorAll('.ac-dropdown.open').forEach(d => d.classList.remove('open'));
 }, { passive: true });
 
+// Lokaler Cache: häufigste deutsche Bahnhöfe (sofortige Ergebnisse)
+const dbStationen = [
+    'München Hbf','München Ost','München Pasing','München-Marienplatz','München Flughafen',
+    'Berlin Hbf','Berlin Südkreuz','Berlin Ostbahnhof','Berlin Gesundbrunnen','Berlin Spandau',
+    'Frankfurt (Main) Hbf','Frankfurt (Main) Süd','Frankfurt Flughafen Fernbf',
+    'Hamburg Hbf','Hamburg-Altona','Hamburg Dammtor','Hamburg-Harburg',
+    'Köln Hbf','Köln Messe/Deutz','Köln/Bonn Flughafen',
+    'Stuttgart Hbf','Stuttgart Flughafen/Messe',
+    'Düsseldorf Hbf','Düsseldorf Flughafen',
+    'Nürnberg Hbf','Augsburg Hbf','Regensburg Hbf','Würzburg Hbf',
+    'Hannover Hbf','Bremen Hbf','Dortmund Hbf','Essen Hbf','Duisburg Hbf',
+    'Leipzig Hbf','Dresden Hbf','Erfurt Hbf','Halle (Saale) Hbf',
+    'Mannheim Hbf','Karlsruhe Hbf','Freiburg (Breisgau) Hbf','Heidelberg Hbf',
+    'Bonn Hbf','Aachen Hbf','Münster (Westf) Hbf','Bielefeld Hbf',
+    'Kassel-Wilhelmshöhe','Braunschweig Hbf','Kiel Hbf','Rostock Hbf',
+    'Mainz Hbf','Wiesbaden Hbf','Darmstadt Hbf','Ulm Hbf',
+    'Ingolstadt Hbf','Passau Hbf','Salzburg Hbf','Innsbruck Hbf',
+    'Wien Hbf','Zürich HB','Basel SBB','Bern','Strasbourg',
+    'Linz Hbf','Graz Hbf','Prag Hbf','Amsterdam Centraal','Brüssel-Midi',
+    'Paris Est','Paris Nord','Wolfsburg Hbf','Fulda','Göttingen',
+    'Bamberg','Erlangen','Rosenheim','Garmisch-Partenkirchen',
+    'Landshut (Bay) Hbf','Freising','Mühldorf (Oberbay)','Traunstein',
+    'Berchtesgaden Hbf','Oberstdorf','Lindau-Insel','Kempten (Allgäu) Hbf',
+    'Friedrichshafen Stadt','Konstanz','Singen (Hohentwiel)','Offenburg',
+    'Baden-Baden','Pforzheim Hbf','Heilbronn Hbf','Tübingen Hbf',
+    'Reutlingen Hbf','Schwerin Hbf','Stralsund Hbf','Cottbus Hbf',
+    'Potsdam Hbf','Magdeburg Hbf','Chemnitz Hbf','Zwickau (Sachs) Hbf',
+    'Saarbrücken Hbf','Trier Hbf','Koblenz Hbf','Lübeck Hbf','Flensburg'
+];
+
 function dbAutocomplete(input, dropdownId) {
     const key = dropdownId;
     clearTimeout(acTimers[key]);
-    const q = input.value.trim();
+    const q = input.value.trim().toLowerCase();
     const dd = document.getElementById(dropdownId);
     if (q.length < 1) { dd.classList.remove('open'); return; }
-    acTimers[key] = setTimeout(async () => {
+
+    // Sofort lokale Treffer zeigen
+    const lokal = dbStationen.filter(s => s.toLowerCase().includes(q)).slice(0, 12);
+    if (lokal.length) {
         acPosition(input.id, dropdownId);
-        dd.innerHTML = '<div class="ac-item" style="justify-content:center; color:var(--mc-text-muted);"><div class="search-spinner" style="width:18px;height:18px;border-width:2px;"></div></div>';
+        dd.innerHTML = lokal.map(s =>
+            `<div class="ac-item" onmousedown="event.preventDefault();" onclick="acSelect(this,'${input.id}','${dropdownId}')">
+                <i class="bi bi-geo-alt" style="color:#EC0016; flex-shrink:0;"></i>
+                <span class="ac-name">${escH(s)}</span>
+            </div>`
+        ).join('');
         dd.classList.add('open');
-        try {
-            const r = await fetch('/api/BahnStationen?q=' + encodeURIComponent(q));
-            const data = await r.json();
-            if (!data.length) { dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted); justify-content:center;">Keine Ergebnisse</div>'; return; }
-            dd.innerHTML = data.map(s =>
-                `<div class="ac-item" onmousedown="event.preventDefault();" onclick="acSelect(this,'${input.id}','${dropdownId}')">
-                    <i class="bi bi-geo-alt" style="color:#EC0016; flex-shrink:0;"></i>
-                    <span class="ac-name">${escH(s.name)}</span>
-                </div>`
-            ).join('');
-        } catch { dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted); justify-content:center;">Fehler beim Laden</div>'; }
-    }, 200);
+    }
+
+    // API im Hintergrund für weitere Treffer (nur wenn wenige lokale)
+    if (lokal.length < 3 && q.length >= 2) {
+        acTimers[key] = setTimeout(async () => {
+            try {
+                const r = await fetch('/api/BahnStationen?q=' + encodeURIComponent(q));
+                const data = await r.json();
+                if (!data.length && !lokal.length) {
+                    acPosition(input.id, dropdownId);
+                    dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted);justify-content:center;">Keine Ergebnisse</div>';
+                    dd.classList.add('open');
+                } else if (data.length) {
+                    // Lokale + API-Ergebnisse mergen (Duplikate entfernen)
+                    const alle = [...lokal];
+                    data.forEach(s => { if (s.name && !alle.some(a => a.toLowerCase() === s.name.toLowerCase())) alle.push(s.name); });
+                    acPosition(input.id, dropdownId);
+                    dd.innerHTML = alle.slice(0, 15).map(s =>
+                        `<div class="ac-item" onmousedown="event.preventDefault();" onclick="acSelect(this,'${input.id}','${dropdownId}')">
+                            <i class="bi bi-geo-alt" style="color:#EC0016; flex-shrink:0;"></i>
+                            <span class="ac-name">${escH(typeof s === 'string' ? s : s)}</span>
+                        </div>`
+                    ).join('');
+                }
+            } catch {}
+        }, 400);
+    }
 }
 
 function mvgAutocomplete(input, dropdownId) {
