@@ -265,6 +265,8 @@
 .ac-item:hover{background:rgba(200,169,110,0.1);}
 .ac-item .ac-name{font-weight:500;}
 .ac-item .ac-badge{font-size:.65rem;padding:1px 5px;border-radius:3px;font-weight:600;color:#fff;}
+.search-spinner{width:40px;height:40px;border:3px solid var(--mc-border);border-top-color:var(--mc-gold);border-radius:50%;animation:spin 0.8s linear infinite;}
+@@keyframes spin{to{transform:rotate(360deg);}}
 </style>
 
 <!-- Ergebnis-Modal -->
@@ -292,21 +294,22 @@ function dbAutocomplete(input, dropdownId) {
     clearTimeout(acTimers[key]);
     const q = input.value.trim();
     const dd = document.getElementById(dropdownId);
-    if (q.length < 2) { dd.classList.remove('open'); return; }
+    if (q.length < 1) { dd.classList.remove('open'); return; }
     acTimers[key] = setTimeout(async () => {
+        dd.innerHTML = '<div class="ac-item" style="justify-content:center; color:var(--mc-text-muted);"><div class="search-spinner" style="width:18px;height:18px;border-width:2px;"></div></div>';
+        dd.classList.add('open');
         try {
             const r = await fetch('/api/BahnStationen?q=' + encodeURIComponent(q));
             const data = await r.json();
-            if (!data.length) { dd.classList.remove('open'); return; }
+            if (!data.length) { dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted); justify-content:center;">Keine Ergebnisse</div>'; return; }
             dd.innerHTML = data.map(s =>
                 `<div class="ac-item" onmousedown="event.preventDefault();" onclick="acSelect(this,'${input.id}','${dropdownId}')">
                     <i class="bi bi-geo-alt" style="color:#EC0016; flex-shrink:0;"></i>
                     <span class="ac-name">${escH(s.name)}</span>
                 </div>`
             ).join('');
-            dd.classList.add('open');
-        } catch { dd.classList.remove('open'); }
-    }, 250);
+        } catch { dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted); justify-content:center;">Fehler beim Laden</div>'; }
+    }, 200);
 }
 
 function mvgAutocomplete(input, dropdownId) {
@@ -314,12 +317,14 @@ function mvgAutocomplete(input, dropdownId) {
     clearTimeout(acTimers[key]);
     const q = input.value.trim();
     const dd = document.getElementById(dropdownId);
-    if (q.length < 2) { dd.classList.remove('open'); return; }
+    if (q.length < 1) { dd.classList.remove('open'); return; }
     acTimers[key] = setTimeout(async () => {
+        dd.innerHTML = '<div class="ac-item" style="justify-content:center; color:var(--mc-text-muted);"><div class="search-spinner" style="width:18px;height:18px;border-width:2px;"></div></div>';
+        dd.classList.add('open');
         try {
             const r = await fetch('/api/MvgStationen?q=' + encodeURIComponent(q));
             const data = await r.json();
-            if (!data.length) { dd.classList.remove('open'); return; }
+            if (!data.length) { dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted); justify-content:center;">Keine Ergebnisse</div>'; return; }
             dd.innerHTML = data.map(s => {
                 const types = (s.types || '').split(',').filter(Boolean);
                 const badges = types.map(t => {
@@ -333,9 +338,8 @@ function mvgAutocomplete(input, dropdownId) {
                     <span style="margin-left:auto; display:flex; gap:2px; flex-shrink:0;">${badges}</span>
                 </div>`;
             }).join('');
-            dd.classList.add('open');
-        } catch { dd.classList.remove('open'); }
-    }, 250);
+        } catch { dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted); justify-content:center;">Fehler beim Laden</div>'; }
+    }, 200);
 }
 
 function acSelect(item, inputId, ddId) {
@@ -430,7 +434,8 @@ async function bahnSuchen() {
     const to = document.getElementById('bahnTo').value;
     const date = document.getElementById('bahnDate').value;
     const time = document.getElementById('bahnTime').value || '00:00';
-    if (!from || !to) return;
+    if (!from || !to) { alert('Bitte Von und Nach eingeben.'); return; }
+    showResult('Deutsche Bahn — Verbindungen', loadingHtml('Verbindungen werden gesucht'));
     const r = await fetch(`/api/BahnSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&time=${time}`);
     const data = await r.json();
     let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-train-front"></i> ${from} → ${to} · ${date}</div>`;
@@ -448,7 +453,8 @@ async function mvgSuchen() {
     const from = document.getElementById('mvgFrom').value;
     const to = document.getElementById('mvgTo').value;
     const time = document.getElementById('mvgTime').value || '';
-    if (!from || !to) return;
+    if (!from || !to) { alert('Bitte Abfahrt und Ziel eingeben.'); return; }
+    showResult('MVG München — Verbindungen', loadingHtml('Verbindungen werden gesucht'));
     const r = await fetch(`/api/MvgSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&time=${time}`);
     const data = await r.json();
     let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-bus-front"></i> ${from} → ${to}</div>`;
@@ -466,7 +472,8 @@ async function mvgSuchen() {
 async function verkehrSuchen() {
     const from = document.getElementById('trafficFrom').value;
     const to = document.getElementById('trafficTo').value;
-    if (!from || !to) return;
+    if (!from || !to) { alert('Bitte Start und Ziel eingeben.'); return; }
+    showResult('Verkehrslage', loadingHtml('Verkehrsdaten werden abgerufen'));
     const r = await fetch(`/api/Traffic?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
     const d = await r.json();
     const statusColor = d.status === 'frei' ? 'var(--mc-success)' : d.status === 'stau' ? 'var(--mc-danger)' : 'var(--mc-warning)';
@@ -480,6 +487,13 @@ async function verkehrSuchen() {
     if (d.baustellen?.length) { html += '<div style="margin-bottom:.5rem;"><strong>Baustellen:</strong></div><ul style="margin:0 0 .75rem 1.25rem;">'; d.baustellen.forEach(s => html += `<li>${s}</li>`); html += '</ul>'; }
     if (d.hinweise?.length) { html += '<div style="margin-bottom:.5rem;"><strong>Hinweise:</strong></div><ul style="margin:0 0 .75rem 1.25rem;">'; d.hinweise.forEach(s => html += `<li>${s}</li>`); html += '</ul>'; }
     showResult('Verkehrslage', html);
+}
+
+function loadingHtml(text) {
+    return `<div style="display:flex; flex-direction:column; align-items:center; padding:2.5rem 1rem; gap:1rem;">
+        <div class="search-spinner"></div>
+        <div style="color:var(--mc-text-muted); font-size:.9rem;">${text}...</div>
+    </div>`;
 }
 
 function showResult(title, html) {

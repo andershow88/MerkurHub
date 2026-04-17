@@ -170,6 +170,7 @@ public class ApiController : Controller
 
             using var jDoc = JsonDocument.Parse(journeyResp);
             var results = new List<object>();
+            var berlinTz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
 
             foreach (var journey in jDoc.RootElement.GetProperty("journeys").EnumerateArray().Take(6))
             {
@@ -177,12 +178,12 @@ public class ApiController : Controller
                 var firstLeg = legs[0];
                 var lastLeg = legs[legs.GetArrayLength() - 1];
 
-                var abfahrt = DateTime.Parse(firstLeg.GetProperty("departure").GetString()!).ToString("HH:mm");
-                var ankunft = DateTime.Parse(lastLeg.GetProperty("arrival").GetString()!).ToString("HH:mm");
+                var depDto = DateTimeOffset.Parse(firstLeg.GetProperty("departure").GetString()!);
+                var arrDto = DateTimeOffset.Parse(lastLeg.GetProperty("arrival").GetString()!);
+                var abfahrt = TimeZoneInfo.ConvertTime(depDto, berlinTz).ToString("HH:mm");
+                var ankunft = TimeZoneInfo.ConvertTime(arrDto, berlinTz).ToString("HH:mm");
 
-                var dep = DateTime.Parse(firstLeg.GetProperty("departure").GetString()!);
-                var arr = DateTime.Parse(lastLeg.GetProperty("arrival").GetString()!);
-                var dauer = (arr - dep);
+                var dauer = arrDto - depDto;
                 var dauerStr = $"{(int)dauer.TotalHours}:{dauer.Minutes:D2} h";
 
                 var umstiege = legs.GetArrayLength() - 1;
@@ -262,18 +263,19 @@ public class ApiController : Controller
             using var jDoc = JsonDocument.Parse(journeyResp);
 
             var results = new List<object>();
+            var berlinTz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
             foreach (var journey in jDoc.RootElement.GetProperty("journeys").EnumerateArray().Take(6))
             {
                 var legs = journey.GetProperty("legs");
                 var firstLeg = legs[0];
                 var lastLeg = legs[legs.GetArrayLength() - 1];
 
-                var abfahrt = DateTime.Parse(firstLeg.GetProperty("departure").GetString()!).ToLocalTime().ToString("HH:mm");
-                var ankunft = DateTime.Parse(lastLeg.GetProperty("arrival").GetString()!).ToLocalTime().ToString("HH:mm");
+                var depDto = DateTimeOffset.Parse(firstLeg.GetProperty("departure").GetString()!);
+                var arrDto = DateTimeOffset.Parse(lastLeg.GetProperty("arrival").GetString()!);
+                var abfahrt = TimeZoneInfo.ConvertTime(depDto, berlinTz).ToString("HH:mm");
+                var ankunft = TimeZoneInfo.ConvertTime(arrDto, berlinTz).ToString("HH:mm");
 
-                var dep = DateTime.Parse(firstLeg.GetProperty("departure").GetString()!);
-                var arr = DateTime.Parse(lastLeg.GetProperty("arrival").GetString()!);
-                var dauer = arr - dep;
+                var dauer = arrDto - depDto;
                 var dauerStr = dauer.TotalHours >= 1 ? $"{(int)dauer.TotalHours}:{dauer.Minutes:D2} h" : $"{(int)dauer.TotalMinutes} min";
 
                 var linien = new List<string>();
@@ -409,14 +411,14 @@ public class ApiController : Controller
     [HttpGet]
     public async Task<IActionResult> BahnStationen(string q)
     {
-        if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+        if (string.IsNullOrWhiteSpace(q) || q.Length < 1)
             return Json(Array.Empty<object>());
         try
         {
             var client = _httpClientFactory.CreateClient();
-            client.Timeout = TimeSpan.FromSeconds(5);
+            client.Timeout = TimeSpan.FromSeconds(8);
             var resp = await client.GetStringAsync(
-                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(q)}&results=6&stops=true&addresses=false&poi=false");
+                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(q)}&results=8&stops=true&addresses=false&poi=false");
             using var doc = JsonDocument.Parse(resp);
             var results = new List<object>();
             foreach (var s in doc.RootElement.EnumerateArray())
@@ -436,14 +438,14 @@ public class ApiController : Controller
     [HttpGet]
     public async Task<IActionResult> MvgStationen(string q)
     {
-        if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
+        if (string.IsNullOrWhiteSpace(q) || q.Length < 1)
             return Json(Array.Empty<object>());
         try
         {
             var client = _httpClientFactory.CreateClient();
-            client.Timeout = TimeSpan.FromSeconds(5);
+            client.Timeout = TimeSpan.FromSeconds(8);
             var resp = await client.GetStringAsync(
-                $"https://www.mvg.de/api/bgw-pt/v3/locations?query={Uri.EscapeDataString(q)}&limit=6");
+                $"https://www.mvg.de/api/bgw-pt/v3/locations?query={Uri.EscapeDataString(q)}&limit=8");
             using var doc = JsonDocument.Parse(resp);
             var results = new List<object>();
             foreach (var s in doc.RootElement.EnumerateArray())
