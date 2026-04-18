@@ -269,8 +269,13 @@
     </div>
 
     <div style="margin-top:1rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
-        <input type="text" class="mc-input" id="aktieSymbol" placeholder="Symbol hinzufügen (z.B. SAP.DE, AAPL, BTC-USD)" style="max-width:300px;" />
+        <div style="position:relative; max-width:340px; flex:1;">
+            <input type="text" class="mc-input" id="aktieSymbol" placeholder="Aktie suchen (z.B. Siemens, Apple, Bitcoin)" autocomplete="off"
+                   oninput="aktienAutocomplete()" onkeydown="if(event.key==='Enter'){event.preventDefault();aktieHinzufuegen();}" />
+            <div class="ac-dropdown" id="aktienAc"></div>
+        </div>
         <button class="btn-mc btn-mc-primary" onclick="aktieHinzufuegen()"><i class="bi bi-plus-lg"></i> Hinzufügen</button>
+        <button class="btn-mc btn-mc-outline" onclick="loadAktien()" title="Alle aktualisieren"><i class="bi bi-arrow-clockwise"></i> Alle aktualisieren</button>
         <span style="font-size:.72rem; color:var(--mc-text-muted); margin-left:.5rem;">Yahoo Finance · 15 Min Verzögerung</span>
     </div>
 
@@ -487,7 +492,7 @@ function mvgAutocomplete(input, dropdownId) {
 }
 
 // Dropdown-Elemente aus Karten raus in body verschieben (transform bricht position:fixed)
-document.querySelectorAll('.ac-dropdown').forEach(dd => document.body.appendChild(dd));
+setTimeout(() => document.querySelectorAll('.ac-dropdown').forEach(dd => document.body.appendChild(dd)), 100);
 
 function acPosition(inputId, ddId) {
     const inp = document.getElementById(inputId);
@@ -938,14 +943,19 @@ function saveAktienListe(list) {
 async function loadAktien() {
     const liste = getAktienListe();
     const grid = document.getElementById('aktienGrid');
-    grid.innerHTML = liste.map(s => `
-        <div class="mc-card" id="aktie-${s.replace(/[^a-zA-Z0-9]/g,'_')}" style="position:relative; padding:1rem 1.25rem;">
+    grid.innerHTML = liste.map(s => {
+        const esc = s.replace(/[^a-zA-Z0-9]/g,'_');
+        return `
+        <div class="mc-card" id="aktie-${esc}" style="position:relative; padding:1rem 1.25rem;">
             <div style="display:flex; justify-content:space-between; align-items:start;">
                 <div>
                     <div style="font-family:'Roboto',sans-serif; font-size:.78rem; color:var(--mc-text-muted); text-transform:uppercase; letter-spacing:.5px;">${aktienNamen[s] || s}</div>
                     <div style="font-size:.72rem; color:var(--mc-text-muted);">${s}</div>
                 </div>
-                <button onclick="aktieEntfernen('${s}')" style="background:none; border:none; color:var(--mc-text-muted); cursor:pointer; font-size:.75rem; padding:2px;" title="Entfernen"><i class="bi bi-x"></i></button>
+                <div style="display:flex; gap:.2rem;">
+                    <button onclick="loadAktieData('${s}')" style="background:none; border:none; color:var(--mc-text-muted); cursor:pointer; font-size:.8rem; padding:2px 4px;" title="Aktualisieren"><i class="bi bi-arrow-clockwise"></i></button>
+                    <button onclick="aktieEntfernen('${s}')" style="background:none; border:none; color:var(--mc-text-muted); cursor:pointer; font-size:.8rem; padding:2px 4px;" title="Entfernen"><i class="bi bi-x-lg"></i></button>
+                </div>
             </div>
             <div style="display:flex; align-items:end; gap:1rem; margin-top:.5rem;">
                 <div>
@@ -954,8 +964,9 @@ async function loadAktien() {
                 </div>
                 <canvas class="aktie-spark" width="120" height="40" style="margin-left:auto;"></canvas>
             </div>
-        </div>
-    `).join('');
+            <div class="aktie-zeit" style="font-size:.65rem; color:var(--mc-text-muted); margin-top:.35rem; text-align:right;"></div>
+        </div>`;
+    }).join('');
 
     for (const s of liste) { loadAktieData(s); }
 }
@@ -972,6 +983,9 @@ async function loadAktieData(symbol) {
         const preisEl = card.querySelector('.aktie-preis');
         const changeEl = card.querySelector('.aktie-change');
         const sparkEl = card.querySelector('.aktie-spark');
+        const zeitEl = card.querySelector('.aktie-zeit');
+
+        if (zeitEl && d.zeitpunkt) zeitEl.textContent = 'Stand: ' + d.zeitpunkt;
 
         const waehrung = d.waehrung === 'USD' ? '$' : d.waehrung === 'EUR' ? '\u20ac' : d.waehrung || '';
         preisEl.textContent = d.preis?.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ' + waehrung;
@@ -1009,6 +1023,42 @@ async function loadAktieData(symbol) {
             ctx.fill();
         }
     } catch {}
+}
+
+let aktienAcTimer = null;
+function aktienAutocomplete() {
+    clearTimeout(aktienAcTimer);
+    const q = document.getElementById('aktieSymbol').value.trim();
+    const dd = document.getElementById('aktienAc');
+    if (q.length < 1) { dd.classList.remove('open'); return; }
+    aktienAcTimer = setTimeout(async () => {
+        acPosition('aktieSymbol', 'aktienAc');
+        dd.innerHTML = '<div class="ac-item" style="justify-content:center;"><div class="search-spinner" style="width:16px;height:16px;border-width:2px;"></div></div>';
+        dd.classList.add('open');
+        try {
+            const r = await fetch('/api/AktienSuche?q=' + encodeURIComponent(q));
+            const data = await r.json();
+            if (!data.length) { dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted);justify-content:center;">Keine Ergebnisse</div>'; return; }
+            dd.innerHTML = data.map(s => {
+                const typBadge = s.typ === 'EQUITY' ? 'Aktie' : s.typ === 'ETF' ? 'ETF' : s.typ === 'CRYPTOCURRENCY' ? 'Crypto' : s.typ === 'CURRENCY' ? 'Währung' : s.typ === 'INDEX' ? 'Index' : s.typ || '';
+                return `<div class="ac-item" onmousedown="event.preventDefault();" onclick="aktieAcSelect('${escH(s.symbol)}','${escH(s.name)}')">
+                    <i class="bi bi-graph-up" style="color:var(--mc-petrol); flex-shrink:0;"></i>
+                    <div style="flex:1; min-width:0;">
+                        <div class="ac-name" style="font-weight:600;">${escH(s.symbol)}</div>
+                        <div style="font-size:.72rem; color:var(--mc-text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escH(s.name)}</div>
+                    </div>
+                    <span style="font-size:.65rem; color:var(--mc-text-muted); flex-shrink:0;">${typBadge} · ${escH(s.exchange)}</span>
+                </div>`;
+            }).join('');
+        } catch { dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted);justify-content:center;">Fehler</div>'; }
+    }, 250);
+}
+
+function aktieAcSelect(symbol, name) {
+    document.getElementById('aktieSymbol').value = symbol;
+    document.getElementById('aktienAc').classList.remove('open');
+    if (name && !aktienNamen[symbol]) aktienNamen[symbol] = name;
+    aktieHinzufuegen();
 }
 
 function aktieHinzufuegen() {

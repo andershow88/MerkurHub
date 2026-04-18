@@ -429,13 +429,14 @@ public class ApiController : Controller
         {
             var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(10);
-            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
 
-            var url = $"https://query1.finance.yahoo.com/v8/finance/chart/{Uri.EscapeDataString(symbol)}?interval=1d&range=1mo&includePrePost=false";
-            var resp = await client.GetStringAsync(url);
-            using var doc = JsonDocument.Parse(resp);
+            // Chart-Daten fuer Sparkline (5min Intervall, 1 Tag fuer Intraday)
+            var chartUrl = $"https://query1.finance.yahoo.com/v8/finance/chart/{Uri.EscapeDataString(symbol)}?interval=5m&range=1d&includePrePost=false";
+            var chartResp = await client.GetStringAsync(chartUrl);
+            using var chartDoc = JsonDocument.Parse(chartResp);
 
-            var result = doc.RootElement.GetProperty("chart").GetProperty("result")[0];
+            var result = chartDoc.RootElement.GetProperty("chart").GetProperty("result")[0];
             var meta = result.GetProperty("meta");
 
             var preis = meta.GetProperty("regularMarketPrice").GetDouble();
@@ -444,21 +445,84 @@ public class ApiController : Controller
             var veraenderung = preis - vorher;
             var veraenderungProzent = vorher != 0 ? (veraenderung / vorher) * 100 : 0;
 
+            // Intraday-Verlauf fuer Sparkline
             var verlauf = new List<double>();
             if (result.TryGetProperty("indicators", out var indicators) &&
                 indicators.TryGetProperty("quote", out var quote) &&
                 quote[0].TryGetProperty("close", out var closes))
             {
                 foreach (var c in closes.EnumerateArray())
-                    verlauf.Add(c.ValueKind == JsonValueKind.Number ? c.GetDouble() : verlauf.LastOrDefault());
+                {
+                    if (c.ValueKind == JsonValueKind.Number)
+                        verlauf.Add(c.GetDouble());
+                    else if (verlauf.Count > 0)
+                        verlauf.Add(verlauf.Last());
+                }
             }
 
-            return Json(new { preis, vorher, veraenderung, veraenderungProzent, waehrung, verlauf });
+            // Wenn Intraday leer (Boerse geschlossen), 1-Monat-Daten holen
+            if (verlauf.Count < 5)
+            {
+                verlauf.Clear();
+                var monatUrl = $"https://query1.finance.yahoo.com/v8/finance/chart/{Uri.EscapeDataString(symbol)}?interval=1d&range=1mo&includePrePost=false";
+                var monatResp = await client.GetStringAsync(monatUrl);
+                using var monatDoc = JsonDocument.Parse(monatResp);
+                var monatResult = monatDoc.RootElement.GetProperty("chart").GetProperty("result")[0];
+                if (monatResult.TryGetProperty("indicators", out var mi) &&
+                    mi.TryGetProperty("quote", out var mq) &&
+                    mq[0].TryGetProperty("close", out var mc))
+                {
+                    foreach (var c in mc.EnumerateArray())
+                        if (c.ValueKind == JsonValueKind.Number) verlauf.Add(c.GetDouble());
+                }
+            }
+
+            var zeitpunkt = meta.TryGetProperty("regularMarketTime", out var rmt)
+                ? DateTimeOffset.FromUnixTimeSeconds(rmt.GetInt64()).ToOffset(TimeSpan.FromHours(2)).ToString("dd.MM.yyyy HH:mm")
+                : "";
+
+            return Json(new { preis, vorher, veraenderung, veraenderungProzent, waehrung, verlauf, zeitpunkt });
         }
         catch (Exception ex)
         {
             return Json(new { error = ex.Message });
         }
+    }
+
+    // ── Aktien-Suche (Yahoo Finance Autocomplete) ───────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> AktienSuche([FromQuery] string q)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Length < 1)
+            return Json(Array.Empty<object>());
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(5);
+            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+
+            var url = $"https://query1.finance.yahoo.com/v1/finance/search?q={Uri.EscapeDataString(q)}&quotesCount=8&newsCount=0&listsCount=0&enableFuzzyQuery=false";
+            var resp = await client.GetStringAsync(url);
+            using var doc = JsonDocument.Parse(resp);
+
+            var results = new List<object>();
+            if (doc.RootElement.TryGetProperty("quotes", out var quotes))
+            {
+                foreach (var item in quotes.EnumerateArray().Take(8))
+                {
+                    var symbol = item.TryGetProperty("symbol", out var s) ? s.GetString() : null;
+                    var name = item.TryGetProperty("shortname", out var n) ? n.GetString() :
+                               item.TryGetProperty("longname", out var ln) ? ln.GetString() : null;
+                    var typ = item.TryGetProperty("quoteType", out var t) ? t.GetString() : "";
+                    var exchange = item.TryGetProperty("exchange", out var ex) ? ex.GetString() : "";
+                    if (symbol != null)
+                        results.Add(new { symbol, name = name ?? symbol, typ, exchange });
+                }
+            }
+            return Json(results);
+        }
+        catch { return Json(Array.Empty<object>()); }
     }
 
     // ── Autocomplete: DB Stationen ──────────────────────────────────────
