@@ -59,7 +59,12 @@
     </div>
 </nav>
 
-<div class="mc-main">
+<!-- Wasserzeichen Logo -->
+<div id="wasserzeichen" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:0; pointer-events:none; opacity:0; transition:opacity 1s ease;">
+    <img src="/images/merkur-logo.svg" alt="" style="width:min(70vw, 70vh); opacity:0.04;" />
+</div>
+
+<div class="mc-main" style="position:relative; z-index:1;">
     @RenderBody()
 </div>
 
@@ -80,6 +85,22 @@
         const i = document.getElementById('themeIcon');
         if (i) i.className = t === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
     }
+
+    // Wasserzeichen einblenden (nach Login oder immer)
+    (function() {
+        var wz = document.getElementById('wasserzeichen');
+        if (!wz) return;
+        var fromSplash = new URLSearchParams(window.location.search).get('splash');
+        if (fromSplash) {
+            // Direkt sichtbar nach Login-Animation
+            wz.style.opacity = '1';
+            // URL bereinigen (splash Parameter entfernen)
+            history.replaceState(null, '', window.location.pathname);
+        } else {
+            // Immer leicht sichtbar
+            wz.style.opacity = '1';
+        }
+    })();
 
     // Deutsche Zeit (Europe/Berlin)
     function updateDeClock() {

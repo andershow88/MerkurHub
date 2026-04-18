@@ -157,41 +157,47 @@
         #globeContainer.active { opacity: 1; }
         #globeContainer.fade-out { opacity: 0; transition: opacity 0.8s ease; }
 
-        /* ── Welcome Overlay ── */
+        /* ── Welcome Overlay — Logo steigt aus München auf ── */
         .welcome-overlay {
             position: fixed; inset: 0; z-index: 100;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            background: linear-gradient(145deg, #0a0a14 0%, #12121e 100%);
+            background: transparent;
             opacity: 0; pointer-events: none;
-            transition: opacity 0.8s ease;
+            transition: opacity 0.5s ease;
         }
         .welcome-overlay.active { opacity: 1; pointer-events: auto; }
+        .welcome-overlay.bg-fill { background: linear-gradient(145deg, #0a0a14 0%, #12121e 100%); }
 
         .welcome-logo {
-            width: clamp(80px, 15vw, 130px);
-            opacity: 0; transform: scale(0.3);
-            transition: transform 1s cubic-bezier(0.22,1,0.36,1) 0.1s, opacity 0.7s ease 0.1s;
+            width: 20px; opacity: 0;
+            transition: none;
         }
-        .welcome-overlay.active .welcome-logo {
-            transform: scale(1); opacity: 1;
+        .welcome-logo.ascending {
+            opacity: 1;
+            animation: logoAscend 2.2s cubic-bezier(0.22,1,0.36,1) forwards;
         }
+        @@keyframes logoAscend {
+            0%   { width: 20px; opacity: 0.6; }
+            40%  { width: clamp(100px, 15vw, 140px); opacity: 1; }
+            100% { width: min(80vw, 80vh); opacity: 0.06; }
+        }
+
         .welcome-text {
-            margin-top: 1.5rem;
-            font-size: clamp(1.1rem, 3vw, 1.65rem); font-weight: 300;
-            color: #C8A96E; opacity: 0; transform: translateY(16px);
-            transition: opacity 0.7s ease 0.5s, transform 0.7s ease 0.5s;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: clamp(1.2rem, 3.5vw, 2rem); font-weight: 300;
+            color: #C8A96E; opacity: 0; white-space: nowrap;
+            transition: opacity 0.8s ease;
         }
-        .welcome-overlay.active .welcome-text {
-            opacity: 1; transform: translateY(0);
-        }
+        .welcome-text.show { opacity: 1; }
+
         .welcome-sub {
-            margin-top: 0.45rem;
-            font-size: clamp(0.7rem, 1.5vw, 0.82rem);
-            color: rgba(255,255,255,0.35);
-            opacity: 0; transition: opacity 0.5s ease 0.9s;
+            position: absolute; top: calc(50% + 2.5rem); left: 50%; transform: translateX(-50%);
+            font-size: clamp(0.7rem, 1.5vw, 0.85rem);
+            color: rgba(255,255,255,0.4); opacity: 0;
+            transition: opacity 0.6s ease;
         }
-        .welcome-overlay.active .welcome-sub { opacity: 1; }
+        .welcome-sub.show { opacity: 1; }
     </style>
 </head>
 <body>
@@ -698,21 +704,35 @@
                 cityGlows[munichIdx].material.opacity = 0.4 + pulseT * 0.4;
             }
 
-            // After hold: fade out globe and show welcome
+            // After hold: logo ascending from Munich point
             if (elapsed > zoomDuration + holdDuration && !container._fadingOut) {
                 container._fadingOut = true;
-                container.classList.add('fade-out');
 
+                // Show welcome overlay on top of globe (transparent bg initially)
+                var overlay = document.getElementById('welcomeOverlay');
+                overlay.classList.add('active');
+
+                // Start logo ascending animation
+                var logo = overlay.querySelector('.welcome-logo');
+                logo.classList.add('ascending');
+
+                // After logo starts growing, fade the globe
+                setTimeout(function () {
+                    container.classList.add('fade-out');
+                    overlay.classList.add('bg-fill');
+                }, 600);
+
+                // Show text when logo is big
+                setTimeout(function () {
+                    overlay.querySelector('.welcome-text').classList.add('show');
+                    overlay.querySelector('.welcome-sub').classList.add('show');
+                }, 1200);
+
+                // Redirect — pass wasserzeichen flag so Hub shows it
                 setTimeout(function () {
                     animating = false;
-                    container.style.display = 'none';
-                    document.getElementById('welcomeOverlay').classList.add('active');
-
-                    // Final redirect
-                    setTimeout(function () {
-                        window.location.href = '/Hub/Index';
-                    }, 1500);
-                }, 800);
+                    window.location.href = '/Hub/Index?splash=1';
+                }, 2800);
             }
 
             renderer.render(scene, camera);
