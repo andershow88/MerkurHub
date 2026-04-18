@@ -193,6 +193,35 @@ public class ApiController : Controller
 
                 var umstiege = legs.GetArrayLength() - 1;
 
+                // Verspaetung
+                var depDelay = firstLeg.TryGetProperty("departureDelay", out var dd) && dd.ValueKind == JsonValueKind.Number ? dd.GetInt32() : (int?)null;
+                var arrDelay = lastLeg.TryGetProperty("arrivalDelay", out var ad) && ad.ValueKind == JsonValueKind.Number ? ad.GetInt32() : (int?)null;
+                var depDelayMin = depDelay.HasValue ? depDelay.Value / 60 : (int?)null;
+                var arrDelayMin = arrDelay.HasValue ? arrDelay.Value / 60 : (int?)null;
+
+                // Tatsaechliche Zeiten bei Verspaetung
+                var abfahrtReal = abfahrt;
+                var ankunftReal = ankunft;
+                if (depDelay.HasValue && depDelay.Value > 0 && firstLeg.TryGetProperty("departure", out var depProp))
+                {
+                    var realDep = DateTimeOffset.Parse(depProp.GetString()!).AddSeconds(0); // departure ist schon die geplante
+                    // Wenn departureDelay gesetzt, berechne reale Zeit
+                    var planned = depStr.Length >= 16 ? depStr.Substring(11, 5) : abfahrt;
+                    abfahrtReal = DateTimeOffset.Parse(depStr).AddSeconds(depDelay.Value).ToString("HH:mm");
+                    abfahrt = planned;
+                }
+                if (arrDelay.HasValue && arrDelay.Value > 0)
+                {
+                    var planned = arrStr.Length >= 16 ? arrStr.Substring(11, 5) : ankunft;
+                    ankunftReal = DateTimeOffset.Parse(arrStr).AddSeconds(arrDelay.Value).ToString("HH:mm");
+                    ankunft = planned;
+                }
+
+                // Status
+                var status = "unbekannt";
+                if (depDelayMin.HasValue)
+                    status = depDelayMin.Value <= 0 ? "puenktlich" : $"+{depDelayMin.Value} min";
+
                 var zuege = new List<string>();
                 foreach (var leg in legs.EnumerateArray())
                 {
@@ -214,7 +243,7 @@ public class ApiController : Controller
                         preis = amount.GetDecimal().ToString("0.00") + " \u20ac";
                 }
 
-                results.Add(new { abfahrt, ankunft, dauer = dauerStr, umstiege, zuege = string.Join(" \u2192 ", zuege), preis });
+                results.Add(new { abfahrt, abfahrtReal, ankunft, ankunftReal, dauer = dauerStr, umstiege, zuege = string.Join(" \u2192 ", zuege), preis, status, depDelayMin, arrDelayMin });
             }
 
             return Json(results);

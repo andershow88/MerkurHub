@@ -679,9 +679,26 @@ async function bahnSuchen() {
     const data = await r.json();
     let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-train-front"></i> ${from} → ${to} · ${date}</div>`;
     html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;">';
-    html += '<thead><tr style="border-bottom:2px solid var(--mc-border);text-align:left;"><th style="padding:.5rem;">Abfahrt</th><th>Ankunft</th><th>Dauer</th><th>Umst.</th><th>Züge</th><th>Preis</th></tr></thead><tbody>';
+    html += '<thead><tr style="border-bottom:2px solid var(--mc-border);text-align:left;"><th style="padding:.5rem;">Abfahrt</th><th>Ankunft</th><th>Dauer</th><th>Umst.</th><th>Züge</th><th>Status</th><th>Preis</th></tr></thead><tbody>';
     data.forEach(c => {
-        html += `<tr style="border-bottom:1px solid var(--mc-border);"><td style="padding:.5rem;font-weight:600;">${c.abfahrt}</td><td>${c.ankunft}</td><td>${c.dauer}</td><td>${c.umstiege}</td><td style="font-size:.8rem;">${c.zuege}</td><td style="color:var(--mc-gold);font-weight:600;">${c.preis}</td></tr>`;
+        // Abfahrt mit Verspätung
+        let depHtml = `<span style="font-weight:600;">${c.abfahrt}</span>`;
+        if (c.depDelayMin && c.depDelayMin > 0) {
+            depHtml = `<span style="text-decoration:line-through;color:var(--mc-text-muted);font-size:.8rem;">${c.abfahrt}</span> <span style="font-weight:600;color:var(--mc-danger);">${c.abfahrtReal}</span>`;
+        }
+        // Ankunft mit Verspätung
+        let arrHtml = c.ankunft;
+        if (c.arrDelayMin && c.arrDelayMin > 0) {
+            arrHtml = `<span style="text-decoration:line-through;color:var(--mc-text-muted);font-size:.8rem;">${c.ankunft}</span> <span style="color:var(--mc-danger);">${c.ankunftReal}</span>`;
+        }
+        // Status Badge
+        let statusHtml = '<span style="color:var(--mc-text-muted);font-size:.78rem;">—</span>';
+        if (c.status === 'puenktlich') {
+            statusHtml = '<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:12px;font-size:.75rem;font-weight:600;white-space:nowrap;"><i class="bi bi-check-circle-fill"></i> Pünktlich</span>';
+        } else if (c.status && c.status !== 'unbekannt') {
+            statusHtml = `<span style="background:#fbe9e7;color:#c62828;padding:2px 8px;border-radius:12px;font-size:.75rem;font-weight:600;white-space:nowrap;"><i class="bi bi-exclamation-triangle-fill"></i> ${c.status}</span>`;
+        }
+        html += `<tr style="border-bottom:1px solid var(--mc-border);"><td style="padding:.5rem;">${depHtml}</td><td>${arrHtml}</td><td>${c.dauer}</td><td>${c.umstiege}</td><td style="font-size:.8rem;">${c.zuege}</td><td>${statusHtml}</td><td style="color:var(--mc-petrol);font-weight:600;">${c.preis}</td></tr>`;
     });
     html += '</tbody></table>';
     html += `<div style="margin-top:1rem;text-align:center;"><a href="https://www.bahn.de" target="_blank" class="btn-mc btn-mc-outline" style="text-decoration:none;">Auf bahn.de buchen <i class="bi bi-box-arrow-up-right"></i></a></div>`;
