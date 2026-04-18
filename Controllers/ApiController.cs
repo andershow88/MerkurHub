@@ -418,6 +418,49 @@ public class ApiController : Controller
         }
     }
 
+    // ── Aktien-Kurs (Yahoo Finance Proxy) ──────────────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> AktienKurs([FromQuery] string symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return Json(new { error = "Symbol fehlt" });
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            client.Timeout = TimeSpan.FromSeconds(10);
+            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0");
+
+            var url = $"https://query1.finance.yahoo.com/v8/finance/chart/{Uri.EscapeDataString(symbol)}?interval=1d&range=1mo&includePrePost=false";
+            var resp = await client.GetStringAsync(url);
+            using var doc = JsonDocument.Parse(resp);
+
+            var result = doc.RootElement.GetProperty("chart").GetProperty("result")[0];
+            var meta = result.GetProperty("meta");
+
+            var preis = meta.GetProperty("regularMarketPrice").GetDouble();
+            var vorher = meta.GetProperty("chartPreviousClose").GetDouble();
+            var waehrung = meta.TryGetProperty("currency", out var cur) ? cur.GetString() : "";
+            var veraenderung = preis - vorher;
+            var veraenderungProzent = vorher != 0 ? (veraenderung / vorher) * 100 : 0;
+
+            var verlauf = new List<double>();
+            if (result.TryGetProperty("indicators", out var indicators) &&
+                indicators.TryGetProperty("quote", out var quote) &&
+                quote[0].TryGetProperty("close", out var closes))
+            {
+                foreach (var c in closes.EnumerateArray())
+                    verlauf.Add(c.ValueKind == JsonValueKind.Number ? c.GetDouble() : verlauf.LastOrDefault());
+            }
+
+            return Json(new { preis, vorher, veraenderung, veraenderungProzent, waehrung, verlauf });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { error = ex.Message });
+        }
+    }
+
     // ── Autocomplete: DB Stationen ──────────────────────────────────────
 
     [HttpGet]

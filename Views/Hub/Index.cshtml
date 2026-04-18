@@ -255,6 +255,29 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
+     AKTIEN & MÄRKTE
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="mc-section">
+    <div class="mc-section-title mc-collapsible" onclick="toggleSection(this)">
+        <i class="bi bi-graph-up"></i> Aktien &amp; Märkte
+        <i class="bi bi-chevron-down mc-chevron"></i>
+    </div>
+    <div class="mc-section-body" style="display:none;">
+
+    <div id="aktienGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1rem;">
+        <!-- Wird per JS befüllt -->
+    </div>
+
+    <div style="margin-top:1rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+        <input type="text" class="mc-input" id="aktieSymbol" placeholder="Symbol hinzufügen (z.B. SAP.DE, AAPL, BTC-USD)" style="max-width:300px;" />
+        <button class="btn-mc btn-mc-primary" onclick="aktieHinzufuegen()"><i class="bi bi-plus-lg"></i> Hinzufügen</button>
+        <span style="font-size:.72rem; color:var(--mc-text-muted); margin-left:.5rem;">Yahoo Finance · 15 Min Verzögerung</span>
+    </div>
+
+    </div><!-- /mc-section-body -->
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
      MODALS
      ═══════════════════════════════════════════════════════════════════════ -->
 
@@ -891,6 +914,122 @@ const kpiObserver = new IntersectionObserver((entries) => {
     });
 }, { threshold: 0.3 });
 document.querySelectorAll('[data-animate-kpi]').forEach(el => kpiObserver.observe(el));
+
+// ═══ Aktien & Märkte ══════════════════════════════════════════════════════════
+const defaultAktien = ['MRK.DE', '^GDAXI', '^STOXX50E', 'EUR=X'];
+const aktienNamen = {
+    'MRK.DE': 'Merkur Privatbank', '^GDAXI': 'DAX 40', '^STOXX50E': 'Euro Stoxx 50',
+    'EUR=X': 'EUR/USD', 'SAP.DE': 'SAP', 'SIE.DE': 'Siemens', 'ALV.DE': 'Allianz',
+    'DTE.DE': 'Deutsche Telekom', 'BAS.DE': 'BASF', 'BMW.DE': 'BMW',
+    'DBK.DE': 'Deutsche Bank', 'MUV2.DE': 'Munich Re', 'AAPL': 'Apple',
+    'MSFT': 'Microsoft', 'GOOGL': 'Alphabet', 'AMZN': 'Amazon',
+    'BTC-USD': 'Bitcoin', 'ETH-USD': 'Ethereum', 'GC=F': 'Gold'
+};
+
+function getAktienListe() {
+    const saved = localStorage.getItem('mh-aktien');
+    return saved ? JSON.parse(saved) : defaultAktien;
+}
+
+function saveAktienListe(list) {
+    localStorage.setItem('mh-aktien', JSON.stringify(list));
+}
+
+async function loadAktien() {
+    const liste = getAktienListe();
+    const grid = document.getElementById('aktienGrid');
+    grid.innerHTML = liste.map(s => `
+        <div class="mc-card" id="aktie-${s.replace(/[^a-zA-Z0-9]/g,'_')}" style="position:relative; padding:1rem 1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+                <div>
+                    <div style="font-family:'Roboto',sans-serif; font-size:.78rem; color:var(--mc-text-muted); text-transform:uppercase; letter-spacing:.5px;">${aktienNamen[s] || s}</div>
+                    <div style="font-size:.72rem; color:var(--mc-text-muted);">${s}</div>
+                </div>
+                <button onclick="aktieEntfernen('${s}')" style="background:none; border:none; color:var(--mc-text-muted); cursor:pointer; font-size:.75rem; padding:2px;" title="Entfernen"><i class="bi bi-x"></i></button>
+            </div>
+            <div style="display:flex; align-items:end; gap:1rem; margin-top:.5rem;">
+                <div>
+                    <div class="aktie-preis" style="font-family:'Roboto',sans-serif; font-size:1.5rem; font-weight:700; color:var(--mc-text-dark);">—</div>
+                    <div class="aktie-change" style="font-size:.8rem; margin-top:.15rem;">—</div>
+                </div>
+                <canvas class="aktie-spark" width="120" height="40" style="margin-left:auto;"></canvas>
+            </div>
+        </div>
+    `).join('');
+
+    for (const s of liste) { loadAktieData(s); }
+}
+
+async function loadAktieData(symbol) {
+    const id = 'aktie-' + symbol.replace(/[^a-zA-Z0-9]/g, '_');
+    const card = document.getElementById(id);
+    if (!card) return;
+    try {
+        const r = await fetch('/api/AktienKurs?symbol=' + encodeURIComponent(symbol));
+        const d = await r.json();
+        if (d.error) return;
+
+        const preisEl = card.querySelector('.aktie-preis');
+        const changeEl = card.querySelector('.aktie-change');
+        const sparkEl = card.querySelector('.aktie-spark');
+
+        const waehrung = d.waehrung === 'USD' ? '$' : d.waehrung === 'EUR' ? '\u20ac' : d.waehrung || '';
+        preisEl.textContent = d.preis?.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ' + waehrung;
+
+        const pct = d.veraenderungProzent;
+        const abs = d.veraenderung;
+        const up = pct >= 0;
+        changeEl.innerHTML = `<span style="color:${up ? 'var(--mc-success)' : 'var(--mc-danger)'};">
+            <i class="bi bi-caret-${up ? 'up' : 'down'}-fill"></i>
+            ${up ? '+' : ''}${pct?.toFixed(2)}% (${up ? '+' : ''}${abs?.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2})})
+        </span>`;
+
+        // Sparkline
+        if (d.verlauf?.length && sparkEl) {
+            const ctx = sparkEl.getContext('2d');
+            const vals = d.verlauf;
+            const min = Math.min(...vals);
+            const max = Math.max(...vals);
+            const range = max - min || 1;
+            const w = sparkEl.width;
+            const h = sparkEl.height;
+            ctx.clearRect(0, 0, w, h);
+            ctx.beginPath();
+            ctx.strokeStyle = up ? '#3a9a5c' : '#c44a5a';
+            ctx.lineWidth = 1.5;
+            vals.forEach((v, i) => {
+                const x = (i / (vals.length - 1)) * w;
+                const y = h - ((v - min) / range) * (h - 4) - 2;
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+            // Fläche
+            ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+            ctx.fillStyle = up ? 'rgba(58,154,92,0.08)' : 'rgba(196,74,90,0.08)';
+            ctx.fill();
+        }
+    } catch {}
+}
+
+function aktieHinzufuegen() {
+    const inp = document.getElementById('aktieSymbol');
+    const symbol = inp.value.trim().toUpperCase();
+    if (!symbol) return;
+    const liste = getAktienListe();
+    if (liste.includes(symbol)) { inp.value = ''; return; }
+    liste.push(symbol);
+    saveAktienListe(liste);
+    inp.value = '';
+    loadAktien();
+}
+
+function aktieEntfernen(symbol) {
+    const liste = getAktienListe().filter(s => s !== symbol);
+    saveAktienListe(liste);
+    loadAktien();
+}
+
+loadAktien();
 
 // ═══ Dashboard Charts ═════════════════════════════════════════════════════════
 const chartColors = { gold: '#c8a96e', navy: '#1a1a2e', success: '#28a745', info: '#17a2b8', danger: '#dc3545', warning: '#e6a817', muted: '#8a8a8a' };
