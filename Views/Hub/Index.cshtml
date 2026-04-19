@@ -549,6 +549,15 @@ function acSelect(item, inputId, ddId) {
 
 function escH(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
 
+function neueSuche(fromId, toId) {
+    document.getElementById(fromId).value = '';
+    document.getElementById(toId).value = '';
+    delete acStationIds[fromId];
+    delete acStationIds[toId];
+    document.getElementById('resultModal')?.classList.remove('active');
+    setTimeout(() => document.getElementById(fromId)?.focus(), 100);
+}
+
 function tauschen(fromId, toId) {
     const a = document.getElementById(fromId);
     const b = document.getElementById(toId);
@@ -796,7 +805,10 @@ async function bahnSuchen() {
         html += `<tr style="border-bottom:1px solid var(--mc-border);"><td style="padding:.5rem;">${depHtml}</td><td>${arrHtml}</td><td>${c.dauer}</td><td>${c.umstiege}</td><td style="font-size:.8rem;">${c.zuege}</td><td>${statusHtml}</td><td style="color:var(--mc-petrol);font-weight:600;">${c.preis}</td></tr>`;
     });
     html += '</tbody></table>';
-    html += `<div style="margin-top:1rem;text-align:center;"><a href="https://www.bahn.de" target="_blank" class="btn-mc btn-mc-outline" style="text-decoration:none;">Auf bahn.de buchen <i class="bi bi-box-arrow-up-right"></i></a></div>`;
+    html += `<div style="margin-top:1rem;display:flex;justify-content:center;gap:.75rem;flex-wrap:wrap;">
+        <button onclick="neueSuche('bahnFrom','bahnTo')" class="btn-mc btn-mc-primary" style="font-size:.82rem;"><i class="bi bi-arrow-clockwise"></i> Neue Suche</button>
+        <a href="https://www.bahn.de" target="_blank" class="btn-mc btn-mc-outline" style="text-decoration:none;font-size:.82rem;">Auf bahn.de buchen <i class="bi bi-box-arrow-up-right"></i></a>
+    </div>`;
     showResult('Deutsche Bahn — Verbindungen', html);
 }
 
@@ -818,7 +830,10 @@ async function mvgSuchen() {
         html += `<tr style="border-bottom:1px solid var(--mc-border);"><td style="padding:.5rem;font-weight:600;">${c.abfahrt}</td><td>${c.ankunft||''}</td><td><span style="${badge}color:#fff;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:600;">${c.linie}</span></td><td>${c.richtung}</td><td>${c.dauer}</td><td style="font-size:.8rem;">${c.typ}</td></tr>`;
     });
     html += '</tbody></table>';
-    html += `<div style="margin-top:1rem;text-align:center;"><a href="https://www.mvg.de" target="_blank" class="btn-mc btn-mc-outline" style="text-decoration:none;">MVG.de öffnen <i class="bi bi-box-arrow-up-right"></i></a></div>`;
+    html += `<div style="margin-top:1rem;display:flex;justify-content:center;gap:.75rem;flex-wrap:wrap;">
+        <button onclick="neueSuche('mvgFrom','mvgTo')" class="btn-mc btn-mc-primary" style="font-size:.82rem;"><i class="bi bi-arrow-clockwise"></i> Neue Suche</button>
+        <a href="https://www.mvg.de" target="_blank" class="btn-mc btn-mc-outline" style="text-decoration:none;font-size:.82rem;">MVG.de öffnen <i class="bi bi-box-arrow-up-right"></i></a>
+    </div>`;
     showResult('MVG München — Verbindungen', html);
 }
 
@@ -860,7 +875,10 @@ async function verkehrSuchen() {
         html += '<div style="text-align:center;color:var(--mc-text-muted);padding:.5rem;">Keine aktuellen Meldungen für diese Strecke.</div>';
     }
 
-    html += `<div style="font-size:.7rem;color:var(--mc-text-muted);text-align:right;">Autobahnen: ${d.autobahnen?.join(', ') || '—'} · Quelle: verkehr.autobahn.de</div>`;
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-top:.5rem;">
+        <button onclick="neueSuche('trafficFrom','trafficTo')" class="btn-mc btn-mc-primary" style="font-size:.82rem;"><i class="bi bi-arrow-clockwise"></i> Neue Suche</button>
+        <span style="font-size:.7rem;color:var(--mc-text-muted);">Autobahnen: ${d.autobahnen?.join(', ') || '\u2014'} · Quelle: verkehr.autobahn.de</span>
+    </div>`;
 
     showResult('Verkehrslage — ' + d.strecke, html);
 
@@ -870,8 +888,9 @@ async function verkehrSuchen() {
         if (!mapEl || typeof L === 'undefined') return;
 
         const map = L.map('verkehrKarte', { scrollWheelZoom: true });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap, © CARTO',
+            maxZoom: 19
         }).addTo(map);
 
         const markers = d.marker?.filter(m => m.lat && m.lng) || [];
