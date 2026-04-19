@@ -320,6 +320,13 @@
                 <button class="color-pick" data-c="#6b6b6b" style="background:#6b6b6b;" onclick="pickColor(this)"></button>
             </div>
             <input type="hidden" id="tileFarbe" value="#1a1a2e" />
+            @if (User.IsInRole("Admin"))
+            {
+                <label style="display:flex; align-items:center; gap:.5rem; margin-bottom:.75rem; font-size:.85rem; cursor:pointer;">
+                    <input type="checkbox" id="tileGlobal" style="width:18px; height:18px; accent-color:var(--mc-petrol,#00515A);" />
+                    <span><i class="bi bi-globe2" style="color:var(--mc-petrol);"></i> Für alle sichtbar (global)</span>
+                </label>
+            }
             <button class="btn-mc btn-mc-gold" style="width:100%;" onclick="tileSpeichern()">Speichern</button>
         </div>
     </div>
@@ -1074,20 +1081,21 @@ async function loadTiles() {
         el.ondragend = tileDragEnd;
         el.ondrop = function(e) { tileDrop(e, t.id); };
         el.innerHTML = `<div class="mc-tile-actions">
-            <button onclick="event.preventDefault();event.stopPropagation();tileBearbeiten(${t.id},'${esc(t.titel)}','${esc(t.url)}','${esc(t.icon||'')}','${esc(t.farbe||'#1a1a2e')}')"><i class="bi bi-pencil"></i></button>
+            <button onclick="event.preventDefault();event.stopPropagation();tileBearbeiten(${t.id},'${esc(t.titel)}','${esc(t.url)}','${esc(t.icon||'')}','${esc(t.farbe||'#1a1a2e')}',${t.global||false})"><i class="bi bi-pencil"></i></button>
             <button onclick="event.preventDefault();event.stopPropagation();tileLoeschen(${t.id})"><i class="bi bi-trash"></i></button>
         </div>
         <div class="mc-tile-icon" style="background:${t.farbe||'linear-gradient(135deg,#1a1a2e,#2c3e64)'};">
             <i class="bi ${t.icon||'bi-globe'}"></i>
         </div>
-        <div class="mc-tile-title">${esc(t.titel)}</div>`;
+        <div class="mc-tile-title">${esc(t.titel)}</div>
+        ${t.global ? '<div style="font-size:.6rem;color:var(--mc-petrol);margin-top:2px;"><i class="bi bi-globe2"></i> Global</div>' : ''}`;
         grid.insertBefore(el, addBtn);
     });
 }
 
 function esc(s) { return s ? s.replace(/'/g, "\\'").replace(/"/g, '&quot;') : ''; }
 
-function tileDialog(id, titel, url, icon, farbe) {
+function tileDialog(id, titel, url, icon, farbe, isGlobal) {
     document.getElementById('tileEditId').value = id || '';
     document.getElementById('tileTitel').value = titel || '';
     document.getElementById('tileUrl').value = url || '';
@@ -1095,12 +1103,14 @@ function tileDialog(id, titel, url, icon, farbe) {
     tilesFarbe = farbe || '#1a1a2e';
     document.getElementById('tileFarbe').value = tilesFarbe;
     document.querySelectorAll('.color-pick').forEach(b => { b.classList.toggle('active', b.dataset.c === tilesFarbe); });
+    const globalEl = document.getElementById('tileGlobal');
+    if (globalEl) globalEl.checked = !!isGlobal;
     document.getElementById('tileModalTitle').textContent = id ? 'Schnellzugriff bearbeiten' : 'Schnellzugriff hinzufügen';
     document.getElementById('tileModal').classList.add('active');
 }
 function tileModalClose() { document.getElementById('tileModal').classList.remove('active'); }
 
-function tileBearbeiten(id, titel, url, icon, farbe) { tileDialog(id, titel, url, icon, farbe); }
+function tileBearbeiten(id, titel, url, icon, farbe, isGlobal) { tileDialog(id, titel, url, icon, farbe, isGlobal); }
 
 async function tileLoeschen(id) {
     if (!confirm('Schnellzugriff löschen?')) return;
@@ -1110,11 +1120,13 @@ async function tileLoeschen(id) {
 
 async function tileSpeichern() {
     const id = document.getElementById('tileEditId').value;
+    const globalEl = document.getElementById('tileGlobal');
     const body = {
         titel: document.getElementById('tileTitel').value,
         url: document.getElementById('tileUrl').value,
         icon: document.getElementById('tileIcon').value,
-        farbe: document.getElementById('tileFarbe').value
+        farbe: document.getElementById('tileFarbe').value,
+        global: globalEl ? globalEl.checked : false
     };
     if (id) {
         await fetch('/api/TilesUpdate/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });

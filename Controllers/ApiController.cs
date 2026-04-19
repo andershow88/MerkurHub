@@ -30,8 +30,10 @@ public class ApiController : Controller
     public async Task<IActionResult> Tiles()
     {
         var tiles = await _db.Tiles
-            .Where(t => t.BenutzerId == CurrentUserId)
-            .OrderBy(t => t.Sortierung)
+            .Where(t => t.BenutzerId == CurrentUserId || t.Global)
+            .OrderBy(t => t.Global ? 0 : 1)
+            .ThenBy(t => t.Sortierung)
+            .Select(t => new { t.Id, t.Titel, t.Url, t.Icon, t.Farbe, t.Sortierung, t.BenutzerId, t.Global })
             .ToListAsync();
 
         return Ok(tiles);
@@ -46,6 +48,7 @@ public class ApiController : Controller
             .Where(t => t.BenutzerId == uid)
             .MaxAsync(t => (int?)t.Sortierung) ?? 0;
 
+        var istAdmin = User.IsInRole("Admin");
         var tile = new Tile
         {
             Titel = dto.Titel,
@@ -54,6 +57,7 @@ public class ApiController : Controller
             Farbe = dto.Farbe,
             Sortierung = maxSort + 1,
             BenutzerId = uid,
+            Global = dto.Global && istAdmin,
             ErstelltAm = DateTime.UtcNow
         };
 
@@ -68,13 +72,15 @@ public class ApiController : Controller
     {
         var tile = await _db.Tiles.FindAsync(id);
 
-        if (tile == null || tile.BenutzerId != CurrentUserId)
+        var istAdmin = User.IsInRole("Admin");
+        if (tile == null || (tile.BenutzerId != CurrentUserId && !istAdmin))
             return NotFound();
 
         tile.Titel = dto.Titel;
         tile.Url = dto.Url;
         tile.Icon = dto.Icon;
         tile.Farbe = dto.Farbe;
+        if (istAdmin) tile.Global = dto.Global;
 
         await _db.SaveChangesAsync();
 
@@ -85,8 +91,9 @@ public class ApiController : Controller
     public async Task<IActionResult> TilesDelete(int id)
     {
         var tile = await _db.Tiles.FindAsync(id);
+        var istAdmin = User.IsInRole("Admin");
 
-        if (tile == null || tile.BenutzerId != CurrentUserId)
+        if (tile == null || (tile.BenutzerId != CurrentUserId && !istAdmin))
             return NotFound();
 
         _db.Tiles.Remove(tile);
@@ -647,6 +654,7 @@ public class ApiController : Controller
         public string Url { get; set; } = string.Empty;
         public string? Icon { get; set; }
         public string? Farbe { get; set; }
+        public bool Global { get; set; }
     }
 
     public class TileReorderDto

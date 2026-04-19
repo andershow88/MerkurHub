@@ -21,6 +21,7 @@ public class Tile
     public string? Farbe { get; set; }
     public int Sortierung { get; set; }
     public int BenutzerId { get; set; }
+    public bool Global { get; set; }
     public DateTime ErstelltAm { get; set; } = DateTime.UtcNow;
 }
 

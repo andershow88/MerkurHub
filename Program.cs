@@ -120,6 +120,14 @@ using (var scope = app.Services.CreateScope())
                 """;
         }
         await cmd.ExecuteNonQueryAsync();
+
+        // Tiles.Global Spalte nachrüsten
+        using var cmd2 = conn.CreateCommand();
+        cmd2.CommandText = isPostgres
+            ? "ALTER TABLE \"Tiles\" ADD COLUMN IF NOT EXISTS \"Global\" BOOLEAN NOT NULL DEFAULT FALSE;"
+            : "ALTER TABLE \"Tiles\" ADD COLUMN \"Global\" INTEGER NOT NULL DEFAULT 0;";
+        try { await cmd2.ExecuteNonQueryAsync(); } catch { /* Spalte existiert bereits */ }
+
         log.LogInformation("Tabellen-Check abgeschlossen");
 
         if (!await db.Users.AnyAsync())
