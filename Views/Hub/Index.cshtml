@@ -540,11 +540,23 @@ function acSelect(item, inputId, ddId) {
 function escH(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
 
 // Städte-Autocomplete für Verkehrslage (nutzt lokale Liste)
-const staedte = ['München','Berlin','Hamburg','Frankfurt','Köln','Stuttgart','Düsseldorf','Nürnberg',
-    'Augsburg','Hannover','Bremen','Dortmund','Essen','Leipzig','Dresden','Regensburg','Würzburg',
-    'Karlsruhe','Freiburg','Mannheim','Bonn','Kassel','Salzburg','Innsbruck','Wien','Zürich',
-    'Basel','Passau','Ulm','Ingolstadt','Rosenheim','Garmisch-Partenkirchen','Kempten','Lindau',
-    'Konstanz','Heidelberg','Saarbrücken','Koblenz','Aachen','Erfurt','Magdeburg','Rostock','Kiel'];
+const staedte = [
+    'München','Berlin','Hamburg','Frankfurt','Köln','Stuttgart','Düsseldorf','Nürnberg',
+    'Augsburg','Hannover','Bremen','Dortmund','Essen','Duisburg','Bochum','Wuppertal',
+    'Leipzig','Dresden','Erfurt','Chemnitz','Magdeburg','Halle','Rostock','Schwerin',
+    'Regensburg','Würzburg','Bamberg','Erlangen','Fürth','Bayreuth','Passau','Landshut',
+    'Ulm','Ingolstadt','Rosenheim','Garmisch-Partenkirchen','Kempten','Lindau','Memmingen',
+    'Karlsruhe','Freiburg','Mannheim','Heidelberg','Pforzheim','Heilbronn','Tübingen','Reutlingen',
+    'Bonn','Kassel','Göttingen','Braunschweig','Wolfsburg','Osnabrück','Oldenburg','Bielefeld',
+    'Münster','Paderborn','Siegen','Aachen','Mönchengladbach','Krefeld','Leverkusen',
+    'Saarbrücken','Koblenz','Mainz','Wiesbaden','Darmstadt','Offenbach','Trier',
+    'Konstanz','Friedrichshafen','Baden-Baden','Offenburg','Singen',
+    'Potsdam','Cottbus','Frankfurt (Oder)','Brandenburg',
+    'Kiel','Lübeck','Flensburg','Neumünster',
+    'Salzburg','Innsbruck','Wien','Linz','Graz','Klagenfurt',
+    'Zürich','Basel','Bern','Luzern','St. Gallen','Genf',
+    'Straßburg','Prag','Amsterdam','Luxemburg'
+];
 
 function stadtAutocomplete(input, ddId) {
     const q = input.value.trim().toLowerCase();
@@ -710,6 +722,8 @@ async function bahnSuchen() {
     showResult('Deutsche Bahn — Verbindungen', loadingHtml('Verbindungen werden gesucht'));
     const r = await fetch(`/api/BahnSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&time=${time}&ersteKlasse=${ersteKlasse}`);
     const data = await r.json();
+    if (data.error) { showResult('Deutsche Bahn', `<div style="text-align:center;padding:1.5rem;color:var(--mc-danger);"><i class="bi bi-exclamation-triangle" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>${data.error}</div>`); return; }
+    if (!Array.isArray(data) || !data.length) { showResult('Deutsche Bahn', '<div style="text-align:center;padding:1.5rem;color:var(--mc-text-muted);">Keine Verbindungen gefunden.</div>'); return; }
     let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-train-front"></i> ${from} → ${to} · ${date}</div>`;
     html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;">';
     html += '<thead><tr style="border-bottom:2px solid var(--mc-border);text-align:left;"><th style="padding:.5rem;">Abfahrt</th><th>Ankunft</th><th>Dauer</th><th>Umst.</th><th>Züge</th><th>Status</th><th>Preis</th></tr></thead><tbody>';
@@ -746,6 +760,8 @@ async function mvgSuchen() {
     showResult('MVG München — Verbindungen', loadingHtml('Verbindungen werden gesucht'));
     const r = await fetch(`/api/MvgSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&time=${time}`);
     const data = await r.json();
+    if (data.error) { showResult('MVG München', `<div style="text-align:center;padding:1.5rem;color:var(--mc-danger);"><i class="bi bi-exclamation-triangle" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>${data.error}</div>`); return; }
+    if (!Array.isArray(data) || !data.length) { showResult('MVG München', '<div style="text-align:center;padding:1.5rem;color:var(--mc-text-muted);">Keine Verbindungen gefunden.</div>'); return; }
     let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-bus-front"></i> ${from} → ${to}</div>`;
     html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;">';
     html += '<thead><tr style="border-bottom:2px solid var(--mc-border);text-align:left;"><th style="padding:.5rem;">Abfahrt</th><th>Ankunft</th><th>Linie</th><th>Richtung</th><th>Dauer</th><th>Typ</th></tr></thead><tbody>';
@@ -975,7 +991,7 @@ const kpiObserver = new IntersectionObserver((entries) => {
 document.querySelectorAll('[data-animate-kpi]').forEach(el => kpiObserver.observe(el));
 
 // ═══ Aktien & Märkte ══════════════════════════════════════════════════════════
-const defaultAktien = ['MRK.DE', '^GDAXI', '^STOXX50E', 'EUR=X'];
+const defaultAktien = [];
 const aktienNamen = {
     'MRK.DE': 'Merkur Privatbank', '^GDAXI': 'DAX 40', '^STOXX50E': 'Euro Stoxx 50',
     'EUR=X': 'EUR/USD', 'SAP.DE': 'SAP', 'SIE.DE': 'Siemens', 'ALV.DE': 'Allianz',
@@ -997,6 +1013,10 @@ function saveAktienListe(list) {
 async function loadAktien() {
     const liste = getAktienListe();
     const grid = document.getElementById('aktienGrid');
+    if (!liste.length) {
+        grid.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--mc-text-muted); grid-column:1/-1;"><i class="bi bi-graph-up" style="font-size:2rem; display:block; margin-bottom:.5rem;"></i>Noch keine Aktien hinzugefügt.<br><span style="font-size:.8rem;">Nutze das Suchfeld um Werte hinzuzufügen.</span></div>';
+        return;
+    }
     grid.innerHTML = liste.map(s => {
         const esc = s.replace(/[^a-zA-Z0-9]/g,'_');
         return `

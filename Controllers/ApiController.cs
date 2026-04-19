@@ -12,11 +12,13 @@ public class ApiController : Controller
 {
     private readonly AppDbContext _db;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<ApiController> _logger;
 
-    public ApiController(AppDbContext db, IHttpClientFactory httpClientFactory)
+    public ApiController(AppDbContext db, IHttpClientFactory httpClientFactory, ILogger<ApiController> logger)
     {
         _db = db;
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
     }
 
     private int CurrentUserId =>
@@ -255,18 +257,10 @@ public class ApiController : Controller
 
             return Json(results);
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback: return mock data so the app never breaks
-            var connections = new[]
-            {
-                new { abfahrt = "06:02", ankunft = "10:07", dauer = "4:05 h", umstiege = 0, zuege = "ICE 1001", preis = "59,90 \u20ac" },
-                new { abfahrt = "07:55", ankunft = "12:30", dauer = "4:35 h", umstiege = 1, zuege = "ICE 785 \u2192 ICE 502", preis = "39,90 \u20ac" },
-                new { abfahrt = "09:30", ankunft = "13:28", dauer = "3:58 h", umstiege = 0, zuege = "ICE 1005", preis = "79,90 \u20ac" },
-                new { abfahrt = "12:02", ankunft = "16:45", dauer = "4:43 h", umstiege = 1, zuege = "IC 2292 \u2192 ICE 1590", preis = "44,90 \u20ac" },
-                new { abfahrt = "15:30", ankunft = "19:28", dauer = "3:58 h", umstiege = 0, zuege = "ICE 1009", preis = "69,90 \u20ac" }
-            };
-            return Json(connections);
+            _logger.LogWarning(ex, "DB-Suche fehlgeschlagen: {From} -> {To}", from, to);
+            return Json(new { error = "Keine Verbindungen gefunden. Bitte pr\u00fcfen Sie die Eingabe oder versuchen Sie es sp\u00e4ter erneut." });
         }
     }
 
@@ -352,17 +346,10 @@ public class ApiController : Controller
             }
             return Json(results);
         }
-        catch
+        catch (Exception ex)
         {
-            var n = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin"));
-            return Json(new[]
-            {
-                new { abfahrt = n.AddMinutes(3).ToString("HH:mm"), linie = "U3", richtung = "Moosach", dauer = "12 min", typ = "U-Bahn", ankunft = n.AddMinutes(15).ToString("HH:mm") },
-                new { abfahrt = n.AddMinutes(5).ToString("HH:mm"), linie = "S1", richtung = "Flughafen", dauer = "22 min", typ = "S-Bahn", ankunft = n.AddMinutes(27).ToString("HH:mm") },
-                new { abfahrt = n.AddMinutes(8).ToString("HH:mm"), linie = "Tram 19", richtung = "Pasing", dauer = "18 min", typ = "Tram", ankunft = n.AddMinutes(26).ToString("HH:mm") },
-                new { abfahrt = n.AddMinutes(10).ToString("HH:mm"), linie = "Bus 58", richtung = "Silberhornstr.", dauer = "15 min", typ = "Bus", ankunft = n.AddMinutes(25).ToString("HH:mm") },
-                new { abfahrt = n.AddMinutes(14).ToString("HH:mm"), linie = "U6", richtung = "Klinikum Grosshadern", dauer = "20 min", typ = "U-Bahn", ankunft = n.AddMinutes(34).ToString("HH:mm") }
-            });
+            _logger.LogWarning(ex, "MVG-Suche fehlgeschlagen: {From} -> {To}", from, to);
+            return Json(new { error = "Keine Verbindungen gefunden. Bitte pr\u00fcfen Sie die Haltestellen oder versuchen Sie es sp\u00e4ter." });
         }
     }
 
