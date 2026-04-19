@@ -375,65 +375,49 @@ public class ApiController : Controller
             var strecke = $"{from} \u2192 {to}";
             var autobahnen = DetectAutobahnen(from, to);
 
-            var staus = new List<string>();
-            var baustellen = new List<string>();
-            var hinweise = new List<string>();
+            var marker = new List<object>();
 
-            foreach (var ab in autobahnen.Take(2))
+            foreach (var ab in autobahnen.Take(3))
             {
                 try
                 {
-                    var warningsResp = await client.GetStringAsync(
-                        $"https://verkehr.autobahn.de/o/autobahn/{ab}/services/warning");
-                    using var wDoc = JsonDocument.Parse(warningsResp);
-                    if (wDoc.RootElement.TryGetProperty("warning", out var warnings))
+                    var wTask = client.GetStringAsync($"https://verkehr.autobahn.de/o/autobahn/{ab}/services/warning");
+                    var rTask = client.GetStringAsync($"https://verkehr.autobahn.de/o/autobahn/{ab}/services/roadworks");
+                    var cTask = client.GetStringAsync($"https://verkehr.autobahn.de/o/autobahn/{ab}/services/closure");
+                    await Task.WhenAll(wTask, rTask, cTask);
+
+                    void ParseItems(string json, string propName, string typ)
                     {
-                        foreach (var w in warnings.EnumerateArray().Take(3))
+                        using var doc = JsonDocument.Parse(json);
+                        if (!doc.RootElement.TryGetProperty(propName, out var items)) return;
+                        foreach (var item in items.EnumerateArray().Take(8))
                         {
-                            var title = w.TryGetProperty("title", out var t) ? t.GetString() : "";
-                            var desc = w.TryGetProperty("subtitle", out var s) ? s.GetString() : "";
+                            var title = item.TryGetProperty("title", out var t) ? t.GetString() : "";
+                            var desc = item.TryGetProperty("subtitle", out var s) ? s.GetString() : "";
+                            var desc2 = item.TryGetProperty("description", out var d2) ? d2.GetString() : "";
+                            double? lat = null, lng = null;
+                            if (item.TryGetProperty("coordinate", out var coord))
+                            {
+                                lat = coord.TryGetProperty("lat", out var la) ? la.GetString() is { } ls ? double.TryParse(ls, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lv) ? lv : null : null : null;
+                                lng = coord.TryGetProperty("long", out var lo) ? lo.GetString() is { } los ? double.TryParse(los, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var lov) ? lov : null : null : null;
+                            }
                             if (!string.IsNullOrEmpty(title))
-                                staus.Add($"{ab}: {title}" + (!string.IsNullOrEmpty(desc) ? $" \u2014 {desc}" : ""));
+                                marker.Add(new { typ, autobahn = ab, title, desc, desc2, lat, lng });
                         }
                     }
 
-                    var rwResp = await client.GetStringAsync(
-                        $"https://verkehr.autobahn.de/o/autobahn/{ab}/services/roadworks");
-                    using var rwDoc = JsonDocument.Parse(rwResp);
-                    if (rwDoc.RootElement.TryGetProperty("roadworks", out var roadworks))
-                    {
-                        foreach (var rw in roadworks.EnumerateArray().Take(3))
-                        {
-                            var title = rw.TryGetProperty("title", out var t) ? t.GetString() : "";
-                            var desc = rw.TryGetProperty("subtitle", out var s) ? s.GetString() : "";
-                            if (!string.IsNullOrEmpty(title))
-                                baustellen.Add($"{ab}: {title}" + (!string.IsNullOrEmpty(desc) ? $" \u2014 {desc}" : ""));
-                        }
-                    }
-
-                    var clResp = await client.GetStringAsync(
-                        $"https://verkehr.autobahn.de/o/autobahn/{ab}/services/closure");
-                    using var clDoc = JsonDocument.Parse(clResp);
-                    if (clDoc.RootElement.TryGetProperty("closure", out var closures))
-                    {
-                        foreach (var c in closures.EnumerateArray().Take(2))
-                        {
-                            var title = c.TryGetProperty("title", out var t) ? t.GetString() : "";
-                            if (!string.IsNullOrEmpty(title))
-                                hinweise.Add($"{ab} Sperrung: {title}");
-                        }
-                    }
+                    ParseItems(wTask.Result, "warning", "stau");
+                    ParseItems(rTask.Result, "roadworks", "baustelle");
+                    ParseItems(cTask.Result, "closure", "sperrung");
                 }
-                catch { /* skip this Autobahn */ }
+                catch { }
             }
 
-            var status = staus.Count > 2 ? "stau" : staus.Count > 0 ? "stockend" : "frei";
+            var stauCount = marker.Count(m => ((dynamic)m).typ == "stau");
+            var status = stauCount > 2 ? "stau" : stauCount > 0 ? "stockend" : "frei";
             var dauer = status == "stau" ? "Deutlich erh\u00f6ht" : status == "stockend" ? "Leicht erh\u00f6ht" : "Normal";
 
-            if (staus.Count == 0 && baustellen.Count == 0 && hinweise.Count == 0)
-                hinweise.Add("Keine aktuellen Meldungen f\u00fcr diese Strecke.");
-
-            return Json(new { strecke, status, dauer, staus, baustellen, hinweise });
+            return Json(new { strecke, status, dauer, marker, autobahnen });
         }
         catch
         {

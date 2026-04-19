@@ -831,15 +831,72 @@ async function verkehrSuchen() {
     const d = await r.json();
     const statusColor = d.status === 'frei' ? 'var(--mc-success)' : d.status === 'stau' ? 'var(--mc-danger)' : 'var(--mc-warning)';
     const statusIcon = d.status === 'frei' ? 'bi-emoji-smile' : d.status === 'stau' ? 'bi-exclamation-octagon' : 'bi-exclamation-triangle';
+
     let html = `<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
         <div style="font-size:2.5rem;color:${statusColor};"><i class="bi ${statusIcon}"></i></div>
         <div><div style="font-size:1.1rem;font-weight:600;">${d.strecke}</div>
         <div style="color:${statusColor};font-weight:600;text-transform:uppercase;">${d.status}</div>
         <div style="font-size:.85rem;color:var(--mc-text-muted);">Geschätzte Fahrzeit: ${d.dauer}</div></div></div>`;
-    if (d.staus?.length) { html += '<div style="margin-bottom:.5rem;"><strong>Staus:</strong></div><ul style="margin:0 0 .75rem 1.25rem;">'; d.staus.forEach(s => html += `<li>${s}</li>`); html += '</ul>'; }
-    if (d.baustellen?.length) { html += '<div style="margin-bottom:.5rem;"><strong>Baustellen:</strong></div><ul style="margin:0 0 .75rem 1.25rem;">'; d.baustellen.forEach(s => html += `<li>${s}</li>`); html += '</ul>'; }
-    if (d.hinweise?.length) { html += '<div style="margin-bottom:.5rem;"><strong>Hinweise:</strong></div><ul style="margin:0 0 .75rem 1.25rem;">'; d.hinweise.forEach(s => html += `<li>${s}</li>`); html += '</ul>'; }
-    showResult('Verkehrslage', html);
+
+    // Karte
+    html += '<div id="verkehrKarte" style="width:100%;height:350px;border-radius:var(--mc-radius-sm);margin-bottom:1rem;border:1px solid var(--mc-border);"></div>';
+
+    // Legende
+    html += `<div style="display:flex;gap:1rem;margin-bottom:1rem;font-size:.8rem;flex-wrap:wrap;">
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#dc3545;margin-right:4px;"></span>Stau/Warnung</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#e6a817;margin-right:4px;"></span>Baustelle</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#6c757d;margin-right:4px;"></span>Sperrung</span>
+    </div>`;
+
+    // Marker-Liste
+    if (d.marker?.length) {
+        const staus = d.marker.filter(m => m.typ === 'stau');
+        const baust = d.marker.filter(m => m.typ === 'baustelle');
+        const sperr = d.marker.filter(m => m.typ === 'sperrung');
+        if (staus.length) { html += '<div style="margin-bottom:.5rem;"><strong style="color:#dc3545;"><i class="bi bi-exclamation-octagon-fill"></i> Staus &amp; Warnungen</strong></div><ul style="margin:0 0 .75rem 1.25rem;font-size:.875rem;">'; staus.forEach(m => html += `<li><strong>${m.autobahn}:</strong> ${m.title}${m.desc ? ' — <span style="color:var(--mc-text-muted);">' + m.desc + '</span>' : ''}</li>`); html += '</ul>'; }
+        if (baust.length) { html += '<div style="margin-bottom:.5rem;"><strong style="color:#e6a817;"><i class="bi bi-cone-striped"></i> Baustellen</strong></div><ul style="margin:0 0 .75rem 1.25rem;font-size:.875rem;">'; baust.forEach(m => html += `<li><strong>${m.autobahn}:</strong> ${m.title}${m.desc ? ' — <span style="color:var(--mc-text-muted);">' + m.desc + '</span>' : ''}</li>`); html += '</ul>'; }
+        if (sperr.length) { html += '<div style="margin-bottom:.5rem;"><strong style="color:#6c757d;"><i class="bi bi-sign-stop"></i> Sperrungen</strong></div><ul style="margin:0 0 .75rem 1.25rem;font-size:.875rem;">'; sperr.forEach(m => html += `<li><strong>${m.autobahn}:</strong> ${m.title}</li>`); html += '</ul>'; }
+    } else {
+        html += '<div style="text-align:center;color:var(--mc-text-muted);padding:.5rem;">Keine aktuellen Meldungen für diese Strecke.</div>';
+    }
+
+    html += `<div style="font-size:.7rem;color:var(--mc-text-muted);text-align:right;">Autobahnen: ${d.autobahnen?.join(', ') || '—'} · Quelle: verkehr.autobahn.de</div>`;
+
+    showResult('Verkehrslage — ' + d.strecke, html);
+
+    // Karte initialisieren nach DOM-Render
+    setTimeout(() => {
+        const mapEl = document.getElementById('verkehrKarte');
+        if (!mapEl || typeof L === 'undefined') return;
+
+        const map = L.map('verkehrKarte', { scrollWheelZoom: true });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        const markers = d.marker?.filter(m => m.lat && m.lng) || [];
+        const bounds = [];
+
+        markers.forEach(m => {
+            const color = m.typ === 'stau' ? '#dc3545' : m.typ === 'baustelle' ? '#e6a817' : '#6c757d';
+            const icon = L.divIcon({
+                className: '',
+                html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);"></div>`,
+                iconSize: [14, 14], iconAnchor: [7, 7]
+            });
+            const popup = `<strong>${m.autobahn}</strong><br>${m.title}${m.desc ? '<br><span style="color:#888;">' + m.desc + '</span>' : ''}`;
+            L.marker([m.lat, m.lng], { icon }).addTo(map).bindPopup(popup);
+            bounds.push([m.lat, m.lng]);
+        });
+
+        if (bounds.length > 1) {
+            map.fitBounds(bounds, { padding: [30, 30] });
+        } else if (bounds.length === 1) {
+            map.setView(bounds[0], 10);
+        } else {
+            map.setView([50.5, 10.5], 6); // Deutschland-Mitte
+        }
+    }, 100);
 }
 
 function loadingHtml(text) {
