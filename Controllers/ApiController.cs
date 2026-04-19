@@ -518,14 +518,14 @@ public class ApiController : Controller
             client.Timeout = TimeSpan.FromSeconds(5);
             client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
 
-            var url = $"https://query1.finance.yahoo.com/v1/finance/search?q={Uri.EscapeDataString(q)}&quotesCount=8&newsCount=0&listsCount=0&enableFuzzyQuery=false";
+            var url = $"https://query1.finance.yahoo.com/v1/finance/search?q={Uri.EscapeDataString(q)}&quotesCount=15&newsCount=0&listsCount=0&enableFuzzyQuery=false";
             var resp = await client.GetStringAsync(url);
             using var doc = JsonDocument.Parse(resp);
 
             var results = new List<object>();
             if (doc.RootElement.TryGetProperty("quotes", out var quotes))
             {
-                foreach (var item in quotes.EnumerateArray().Take(8))
+                foreach (var item in quotes.EnumerateArray().Take(15))
                 {
                     var symbol = item.TryGetProperty("symbol", out var s) ? s.GetString() : null;
                     var name = item.TryGetProperty("shortname", out var n) ? n.GetString() :

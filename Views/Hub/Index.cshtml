@@ -513,18 +513,32 @@ function mvgAutocomplete(input, dropdownId) {
 }
 
 // Dropdown-Elemente aus Karten raus in body verschieben (transform bricht position:fixed)
-setTimeout(() => document.querySelectorAll('.ac-dropdown').forEach(dd => document.body.appendChild(dd)), 100);
+function moveDropdownsToBody() {
+    document.querySelectorAll('.ac-dropdown').forEach(dd => {
+        if (dd.parentNode !== document.body) document.body.appendChild(dd);
+    });
+}
+setTimeout(moveDropdownsToBody, 100);
+// Nochmal nach Section-Aufklappen
+const origToggle = window.toggleSection;
+window.toggleSection = function(header) {
+    origToggle(header);
+    setTimeout(moveDropdownsToBody, 350);
+};
 
 function acPosition(inputId, ddId) {
     const inp = document.getElementById(inputId);
     const dd = document.getElementById(ddId);
     if (!inp || !dd) return;
     const r = inp.getBoundingClientRect();
+
+    // Wenn das Element nicht sichtbar ist (z.B. in collapsed section), Fallback
+    if (r.width === 0 && r.height === 0) return;
+
     const spaceBelow = window.innerHeight - r.bottom - 10;
-    const maxH = Math.min(420, spaceBelow);
+    const ddMaxH = dd.style.maxHeight && dd.style.maxHeight.includes('!') ? undefined : Math.min(500, Math.max(spaceBelow, 200));
 
     if (spaceBelow < 150) {
-        // Oben öffnen wenn unten kein Platz
         dd.style.bottom = (window.innerHeight - r.top + 2) + 'px';
         dd.style.top = 'auto';
         dd.style.borderRadius = 'var(--mc-radius-sm) var(--mc-radius-sm) 0 0';
@@ -534,8 +548,8 @@ function acPosition(inputId, ddId) {
         dd.style.borderRadius = '0 0 var(--mc-radius-sm) var(--mc-radius-sm)';
     }
     dd.style.left = r.left + 'px';
-    dd.style.width = r.width + 'px';
-    dd.style.maxHeight = maxH + 'px';
+    dd.style.width = Math.max(r.width, 280) + 'px';
+    if (ddMaxH) dd.style.maxHeight = ddMaxH + 'px';
 }
 
 const acStationIds = {};
