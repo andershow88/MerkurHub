@@ -350,6 +350,7 @@
 @@media(max-width:600px){
     .hub-top-grid .mc-card{border-radius:8px;}
 }
+@@keyframes alSlideUp{from{transform:translateX(-50%) translateY(20px);opacity:0;}to{transform:translateX(-50%) translateY(0);opacity:1;}}
 .swap-btn{background:none;border:1px solid var(--mc-border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mc-text-muted);font-size:.85rem;transition:all .2s;flex-shrink:0;}
 .swap-btn:hover{border-color:var(--mc-petrol,var(--mc-primary));color:var(--mc-petrol,var(--mc-primary));transform:rotate(180deg);}
 .mc-collapsible{cursor:pointer;user-select:none;position:relative;}
@@ -1081,10 +1082,17 @@ async function loadTiles() {
     tiles.forEach(t => {
         const el = document.createElement('a');
         el.className = 'mc-tile';
-        el.href = t.autoLogin
-            ? `/Hub/AutoLogin?tileId=${t.id}&url=${encodeURIComponent(t.url)}&feldUser=${encodeURIComponent(t.feldUsername||'')}&feldPass=${encodeURIComponent(t.feldPasswort||'')}`
-            : t.url;
-        el.target = '_blank';
+        if (t.autoLogin) {
+            el.href = '#';
+            el.onclick = function(e) {
+                if (e.target.closest('.mc-tile-actions')) return;
+                e.preventDefault();
+                autoLoginKlick(t.id, t.url);
+            };
+        } else {
+            el.href = t.url;
+            el.target = '_blank';
+        }
         el.draggable = true;
         el.dataset.tileId = t.id;
         el.ondragstart = function(e) { tileDragStart(e, t.id); };
@@ -1107,6 +1115,120 @@ async function loadTiles() {
 }
 
 function esc(s) { return s ? s.replace(/'/g, "\\'").replace(/"/g, '&quot;') : ''; }
+
+// ═══ AutoLogin ═══════════════════════════════════════════════════════════════
+async function autoLoginKlick(tileId, url) {
+    // Credentials laden
+    const r = await fetch('/api/GetCredential?tileId=' + tileId);
+    const cred = await r.json();
+
+    if (!cred.username) {
+        // Erste Nutzung — Credentials eingeben
+        autoLoginErsteinrichtung(tileId, url);
+        return;
+    }
+
+    // Username in Zwischenablage kopieren
+    await navigator.clipboard.writeText(cred.username);
+
+    // URL im neuen Tab öffnen
+    window.open(url, '_blank');
+
+    // Popup mit Passwort-Kopieren anzeigen
+    autoLoginPopupZeigen(cred.username, cred.passwort, tileId);
+}
+
+function autoLoginPopupZeigen(username, passwort, tileId) {
+    // Bestehendes Popup entfernen
+    document.getElementById('alPopup')?.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'alPopup';
+    popup.style.cssText = 'position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); z-index:9999; background:var(--mc-bg-card,#fff); border:1px solid var(--mc-border); border-radius:var(--mc-radius); box-shadow:0 8px 32px rgba(0,0,0,.15); padding:1.25rem 1.5rem; max-width:400px; width:90%; animation:alSlideUp .3s ease-out;';
+    popup.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem;">
+            <div style="font-family:Roboto,sans-serif; font-weight:600; font-size:.95rem; color:var(--mc-text-dark);"><i class="bi bi-shield-lock" style="color:var(--mc-petrol);"></i> AutoLogin</div>
+            <button onclick="document.getElementById('alPopup').remove()" style="background:none; border:none; cursor:pointer; color:var(--mc-text-muted); font-size:1rem;"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div style="background:var(--mc-bg-alt,#f7f7f5); border-radius:var(--mc-radius-sm); padding:.75rem; margin-bottom:.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem;">
+                <div><span style="font-size:.75rem; color:var(--mc-text-muted);">Benutzer</span><br><strong style="color:var(--mc-text-dark);">${username}</strong></div>
+                <button onclick="alCopy('${username}',this)" class="btn-mc btn-mc-primary" style="font-size:.75rem; padding:.25rem .6rem;"><i class="bi bi-clipboard"></i> Kopieren</button>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div><span style="font-size:.75rem; color:var(--mc-text-muted);">Passwort</span><br><strong style="color:var(--mc-text-dark);" id="alPassDisplay">••••••••</strong></div>
+                <div style="display:flex; gap:.35rem;">
+                    <button onclick="document.getElementById('alPassDisplay').textContent=document.getElementById('alPassDisplay').textContent==='••••••••'?'${passwort}':'••••••••'" class="btn-mc btn-mc-outline" style="font-size:.75rem; padding:.25rem .5rem;"><i class="bi bi-eye"></i></button>
+                    <button onclick="alCopy('${passwort}',this)" class="btn-mc btn-mc-primary" style="font-size:.75rem; padding:.25rem .6rem;"><i class="bi bi-clipboard"></i> Kopieren</button>
+                </div>
+            </div>
+        </div>
+        <div style="font-size:.72rem; color:var(--mc-success); text-align:center;"><i class="bi bi-check-circle"></i> Benutzername wurde in die Zwischenablage kopiert — Ctrl+V im Login-Feld</div>
+        <div style="margin-top:.5rem; text-align:center;">
+            <button onclick="autoLoginBearbeiten(${tileId})" style="font-size:.72rem; color:var(--mc-text-muted); background:none; border:none; cursor:pointer; text-decoration:underline;">Zugangsdaten ändern</button>
+        </div>
+    `;
+    document.body.appendChild(popup);
+
+    // Nach 30 Sekunden automatisch ausblenden
+    setTimeout(() => { document.getElementById('alPopup')?.remove(); }, 30000);
+}
+
+function alCopy(text, btn) {
+    navigator.clipboard.writeText(text);
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check"></i> Kopiert';
+    btn.style.background = 'var(--mc-success,#A2AE3C)';
+    btn.style.borderColor = 'var(--mc-success,#A2AE3C)';
+    btn.style.color = '#fff';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = ''; }, 2000);
+}
+
+function autoLoginErsteinrichtung(tileId, url) {
+    document.getElementById('alPopup')?.remove();
+    const popup = document.createElement('div');
+    popup.id = 'alPopup';
+    popup.style.cssText = 'position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); z-index:9999; background:var(--mc-bg-card,#fff); border:1px solid var(--mc-border); border-radius:var(--mc-radius); box-shadow:0 8px 32px rgba(0,0,0,.15); padding:1.25rem 1.5rem; max-width:400px; width:90%;';
+    popup.innerHTML = `
+        <div style="font-family:Roboto,sans-serif; font-weight:600; margin-bottom:.75rem; color:var(--mc-text-dark);"><i class="bi bi-shield-lock" style="color:var(--mc-petrol);"></i> Zugangsdaten einrichten</div>
+        <div style="margin-bottom:.5rem;"><label style="font-size:.8rem; color:var(--mc-text-muted);">Benutzername</label><input type="text" id="alNewUser" style="width:100%;padding:.4rem .6rem;border:1px solid var(--mc-border);border-radius:var(--mc-radius-sm);margin-top:.2rem;" /></div>
+        <div style="margin-bottom:.75rem;"><label style="font-size:.8rem; color:var(--mc-text-muted);">Passwort</label><input type="password" id="alNewPass" style="width:100%;padding:.4rem .6rem;border:1px solid var(--mc-border);border-radius:var(--mc-radius-sm);margin-top:.2rem;" /></div>
+        <div style="display:flex; gap:.5rem;">
+            <button onclick="alSaveAndGo(${tileId},'${url}')" class="btn-mc btn-mc-filled" style="flex:1;justify-content:center;">Speichern & Öffnen</button>
+            <button onclick="document.getElementById('alPopup').remove()" class="btn-mc btn-mc-outline">Abbrechen</button>
+        </div>
+    `;
+    document.body.appendChild(popup);
+    document.getElementById('alNewUser')?.focus();
+}
+
+async function alSaveAndGo(tileId, url) {
+    const u = document.getElementById('alNewUser').value;
+    const p = document.getElementById('alNewPass').value;
+    if (!u || !p) { alert('Bitte beides ausfüllen.'); return; }
+    await fetch('/api/SaveCredential', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ tileId, username: u, passwort: p })
+    });
+    await navigator.clipboard.writeText(u);
+    window.open(url, '_blank');
+    document.getElementById('alPopup')?.remove();
+    autoLoginPopupZeigen(u, p, tileId);
+}
+
+function autoLoginBearbeiten(tileId) {
+    document.getElementById('alPopup')?.remove();
+    // Tile-Daten holen und Ersteinrichtung nochmal zeigen
+    fetch('/api/GetCredential?tileId=' + tileId).then(r => r.json()).then(cred => {
+        autoLoginErsteinrichtung(tileId, '');
+        setTimeout(() => {
+            const uEl = document.getElementById('alNewUser');
+            const pEl = document.getElementById('alNewPass');
+            if (uEl) uEl.value = cred.username || '';
+            if (pEl) pEl.value = cred.passwort || '';
+        }, 50);
+    });
+}
 
 function tileDialog(id, titel, url, icon, farbe, isGlobal, autoLogin, feldUser, feldPass) {
     document.getElementById('tileEditId').value = id || '';
