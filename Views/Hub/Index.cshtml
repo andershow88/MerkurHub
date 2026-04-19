@@ -877,6 +877,44 @@ async function verkehrSuchen() {
         const markers = d.marker?.filter(m => m.lat && m.lng) || [];
         const bounds = [];
 
+        // Strecke von Start nach Ziel als Linie (über OSRM Routing API)
+        (async () => {
+            try {
+                // Start/Ziel geocoden
+                const geoFrom = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(from)}&format=json&limit=1`);
+                const geoTo = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(to)}&format=json&limit=1`);
+                const [gf] = await geoFrom.json();
+                const [gt] = await geoTo.json();
+                if (gf && gt) {
+                    // Route via OSRM (kostenlos, kein Key)
+                    const routeResp = await fetch(`https://router.project-osrm.org/route/v1/driving/${gf.lon},${gf.lat};${gt.lon},${gt.lat}?overview=full&geometries=geojson`);
+                    const routeData = await routeResp.json();
+                    if (routeData.routes?.[0]) {
+                        const coords = routeData.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                        L.polyline(coords, { color: '#00515A', weight: 4, opacity: 0.7, dashArray: null }).addTo(map);
+
+                        // Start/Ziel-Marker
+                        const startIcon = L.divIcon({ className: '', html: '<div style="width:18px;height:18px;border-radius:50%;background:#00515A;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:700;">A</div>', iconSize: [18,18], iconAnchor: [9,9] });
+                        const endIcon = L.divIcon({ className: '', html: '<div style="width:18px;height:18px;border-radius:50%;background:#00515A;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;font-weight:700;">B</div>', iconSize: [18,18], iconAnchor: [9,9] });
+                        L.marker([parseFloat(gf.lat), parseFloat(gf.lon)], { icon: startIcon }).addTo(map).bindPopup(`<strong>Start:</strong> ${from}`);
+                        L.marker([parseFloat(gt.lat), parseFloat(gt.lon)], { icon: endIcon }).addTo(map).bindPopup(`<strong>Ziel:</strong> ${to}`);
+
+                        // Karte auf Route + Marker fitten
+                        const allPts = [...coords, ...bounds];
+                        if (allPts.length) map.fitBounds(allPts, { padding: [40, 40] });
+
+                        // Fahrinfo
+                        const km = (routeData.routes[0].distance / 1000).toFixed(0);
+                        const min = Math.round(routeData.routes[0].duration / 60);
+                        const infoEl = document.createElement('div');
+                        infoEl.style.cssText = 'font-size:.78rem;color:var(--mc-text-muted);text-align:center;margin-top:.25rem;';
+                        infoEl.textContent = `Strecke: ca. ${km} km · Fahrzeit ohne Verkehr: ca. ${min} Min.`;
+                        mapEl.parentNode.insertBefore(infoEl, mapEl.nextSibling);
+                    }
+                }
+            } catch {}
+        })();
+
         markers.forEach(m => {
             const color = m.typ === 'stau' ? '#dc3545' : m.typ === 'baustelle' ? '#e6a817' : '#6c757d';
             const icon = L.divIcon({
