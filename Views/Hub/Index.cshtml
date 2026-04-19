@@ -145,8 +145,8 @@
             <div style="margin-bottom:.75rem; position:relative;">
                 <div style="display:flex; gap:.4rem;">
                     <input type="text" class="mc-input" id="weatherCity" placeholder="Ort eingeben…" style="font-size:.85rem; padding:.45rem .7rem;" oninput="weatherCityAutocomplete()" onkeydown="if(event.key==='Enter'){event.preventDefault();weatherCitySelect();}" />
-                    <button onclick="weatherCitySelect()" style="padding:.45rem .65rem; border:none; border-radius:var(--mc-radius-sm); background:var(--mc-gold); color:#fff; cursor:pointer; font-size:.8rem; flex-shrink:0;" title="Ort laden">
-                        <i class="bi bi-geo-alt-fill"></i>
+                    <button onclick="weatherMeinStandort(this)" style="padding:.45rem .65rem; border:none; border-radius:var(--mc-radius-sm); background:var(--mc-petrol, #00515A); color:#fff; cursor:pointer; font-size:.8rem; flex-shrink:0;" title="Meinen Standort verwenden">
+                        <i class="bi bi-crosshair"></i>
                     </button>
                 </div>
                 <div class="ac-dropdown" id="weatherCityAc" style="z-index:60;"></div>
@@ -680,6 +680,54 @@ function weatherCityAutocomplete() {
             ).join('');
         } catch { dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted);justify-content:center;">Fehler</div>'; }
     }, 250);
+}
+
+async function weatherMeinStandort(btn) {
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise" style="animation:spin .8s linear infinite;"></i>';
+    btn.disabled = true;
+
+    let lat = null, lon = null, name = null;
+
+    // 1. Browser Geolocation
+    try {
+        const pos = await new Promise((resolve, reject) => {
+            if (!navigator.geolocation) return reject('no geo');
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000, maximumAge: 0, enableHighAccuracy: true });
+        });
+        lat = pos.coords.latitude;
+        lon = pos.coords.longitude;
+    } catch {}
+
+    // 2. Fallback: IP-basiert
+    if (!lat) {
+        try {
+            const r = await fetch('https://ipapi.co/json/');
+            const d = await r.json();
+            if (d.latitude) { lat = d.latitude; lon = d.longitude; name = d.city; }
+        } catch {}
+    }
+
+    if (!lat) {
+        btn.innerHTML = origHtml;
+        btn.disabled = false;
+        alert('Standort konnte nicht ermittelt werden.');
+        return;
+    }
+
+    // Reverse Geocoding
+    if (!name) {
+        try {
+            const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+            const d = await r.json();
+            name = d.address?.city || d.address?.town || d.address?.village || 'Mein Standort';
+        } catch { name = 'Mein Standort'; }
+    }
+
+    document.getElementById('weatherCity').value = name;
+    weatherLoadCity(lat, lon, name);
+    btn.innerHTML = origHtml;
+    btn.disabled = false;
 }
 
 function weatherCitySelect() {
