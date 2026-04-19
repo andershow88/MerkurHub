@@ -121,6 +121,45 @@ using (var scope = app.Services.CreateScope())
         }
         await cmd.ExecuteNonQueryAsync();
 
+        // Neue Spalten + Tabelle nachrüsten
+        using var cmdTiles = conn.CreateCommand();
+        if (isPostgres)
+            cmdTiles.CommandText = """
+                ALTER TABLE "Tiles" ADD COLUMN IF NOT EXISTS "AutoLogin" BOOLEAN NOT NULL DEFAULT FALSE;
+                ALTER TABLE "Tiles" ADD COLUMN IF NOT EXISTS "FeldUsername" TEXT NULL;
+                ALTER TABLE "Tiles" ADD COLUMN IF NOT EXISTS "FeldPasswort" TEXT NULL;
+                CREATE TABLE IF NOT EXISTS "UserCredentials" (
+                    "Id" SERIAL PRIMARY KEY,
+                    "TileId" INT NOT NULL DEFAULT 0,
+                    "BenutzerId" INT NOT NULL DEFAULT 0,
+                    "Username" TEXT NOT NULL DEFAULT '',
+                    "Passwort" TEXT NOT NULL DEFAULT ''
+                );
+                """;
+        else
+            cmdTiles.CommandText = """
+                CREATE TABLE IF NOT EXISTS "UserCredentials" (
+                    "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    "TileId" INTEGER NOT NULL DEFAULT 0,
+                    "BenutzerId" INTEGER NOT NULL DEFAULT 0,
+                    "Username" TEXT NOT NULL DEFAULT '',
+                    "Passwort" TEXT NOT NULL DEFAULT ''
+                );
+                """;
+        try { await cmdTiles.ExecuteNonQueryAsync(); } catch { }
+
+        // SQLite: Spalten einzeln nachrüsten (kein IF NOT EXISTS)
+        if (!isPostgres)
+        {
+            foreach (var col in new[] { "ALTER TABLE \"Tiles\" ADD COLUMN \"AutoLogin\" INTEGER NOT NULL DEFAULT 0",
+                                         "ALTER TABLE \"Tiles\" ADD COLUMN \"FeldUsername\" TEXT NULL",
+                                         "ALTER TABLE \"Tiles\" ADD COLUMN \"FeldPasswort\" TEXT NULL" })
+            {
+                using var c3 = conn.CreateCommand(); c3.CommandText = col;
+                try { await c3.ExecuteNonQueryAsync(); } catch { }
+            }
+        }
+
         // Tiles.Global Spalte nachrüsten
         using var cmd2 = conn.CreateCommand();
         cmd2.CommandText = isPostgres

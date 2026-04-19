@@ -1,0 +1,102 @@
+@{ Layout = null; }
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AutoLogin — MerkurHub</title>
+    <style>
+        body { font-family: 'Open Sans', sans-serif; background: #f7f7f5; color: #6D6D6D; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .card { background: #fff; border-radius: 16px; padding: 2.5rem; max-width: 420px; width: 90%; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+        .card h2 { font-family: 'Roboto', sans-serif; color: #00515A; margin: 0 0 .5rem; font-size: 1.2rem; }
+        .card p { font-size: .9rem; margin: .5rem 0; }
+        .spinner { width: 32px; height: 32px; border: 3px solid #ddd; border-top-color: #00515A; border-radius: 50%; animation: spin .8s linear infinite; margin: 1rem auto; }
+        .cred-box { background: #f7f7f5; border: 1px solid #ddd; border-radius: 8px; padding: .75rem; margin: .75rem 0; text-align: left; font-size: .85rem; }
+        .cred-row { display: flex; justify-content: space-between; align-items: center; margin: .25rem 0; }
+        .cred-row .label { color: #999; }
+        .cred-row .value { font-weight: 600; color: #333; }
+        .copy-btn { border: 1px solid #ddd; background: #fff; border-radius: 4px; padding: .2rem .5rem; cursor: pointer; font-size: .75rem; color: #00515A; }
+        .copy-btn:hover { background: #f0f0f0; }
+        .success { color: #A2AE3C; font-weight: 600; }
+        .warn { color: #DE6250; font-size: .8rem; margin-top: .75rem; }
+        @@keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<div class="card" id="card">
+    <h2><i class="bi bi-shield-lock" style="margin-right:.35rem;"></i> AutoLogin</h2>
+    <div class="spinner" id="spinner"></div>
+    <p id="status">Zugangsdaten werden geladen...</p>
+    <div class="cred-box" id="credBox" style="display:none;">
+        <div class="cred-row"><span class="label">Benutzer:</span><span class="value" id="showUser"></span><button class="copy-btn" onclick="copy('showUser')">Kopieren</button></div>
+        <div class="cred-row"><span class="label">Passwort:</span><span class="value" id="showPass">••••••</span><button class="copy-btn" onclick="copy('showPass')">Kopieren</button></div>
+    </div>
+    <p class="warn" id="warn" style="display:none;">Auto-Fill ist bei externen Seiten nicht möglich.<br>Bitte Zugangsdaten manuell einfügen (Kopieren-Buttons nutzen).</p>
+</div>
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const tileId = params.get('tileId');
+    const url = params.get('url');
+    const feldUser = params.get('feldUser');
+    const feldPass = params.get('feldPass');
+
+    (async function() {
+        if (!tileId || !url) { document.getElementById('status').textContent = 'Fehler: Keine Tile-ID.'; return; }
+
+        try {
+            const r = await fetch('/api/GetCredential?tileId=' + tileId);
+            const cred = await r.json();
+
+            if (!cred.username) {
+                // Noch keine Credentials → User auffordern
+                document.getElementById('spinner').style.display = 'none';
+                document.getElementById('status').innerHTML = 'Noch keine Zugangsdaten gespeichert.<br>Bitte einmalig eintragen:';
+                document.getElementById('credBox').style.display = 'block';
+                document.getElementById('credBox').innerHTML = `
+                    <div style="margin-bottom:.5rem;"><label style="font-size:.8rem;color:#999;">Benutzername</label><input type="text" id="inputUser" style="width:100%;padding:.4rem .6rem;border:1px solid #ddd;border-radius:6px;margin-top:.2rem;" /></div>
+                    <div style="margin-bottom:.75rem;"><label style="font-size:.8rem;color:#999;">Passwort</label><input type="password" id="inputPass" style="width:100%;padding:.4rem .6rem;border:1px solid #ddd;border-radius:6px;margin-top:.2rem;" /></div>
+                    <button onclick="saveAndGo()" style="width:100%;padding:.5rem;border:none;border-radius:30px;background:#00515A;color:#fff;font-weight:600;cursor:pointer;">Speichern & Weiter</button>
+                `;
+                return;
+            }
+
+            // Credentials vorhanden → anzeigen + weiterleiten
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('status').innerHTML = '<span class="success">✓ Zugangsdaten geladen</span>';
+            document.getElementById('credBox').style.display = 'block';
+            document.getElementById('showUser').textContent = cred.username;
+            document.getElementById('showPass').textContent = cred.passwort;
+            document.getElementById('warn').style.display = 'block';
+
+            // Nach 1.5s die Zielseite öffnen
+            setTimeout(() => { window.open(url, '_blank'); }, 1500);
+
+        } catch {
+            document.getElementById('spinner').style.display = 'none';
+            document.getElementById('status').textContent = 'Fehler beim Laden der Zugangsdaten.';
+        }
+    })();
+
+    async function saveAndGo() {
+        const u = document.getElementById('inputUser').value;
+        const p = document.getElementById('inputPass').value;
+        if (!u || !p) { alert('Bitte beides ausfüllen.'); return; }
+
+        await fetch('/api/SaveCredential', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ tileId: parseInt(tileId), username: u, passwort: p })
+        });
+
+        document.getElementById('credBox').innerHTML = '<div class="success" style="text-align:center;padding:.5rem;">✓ Gespeichert! Seite wird geöffnet...</div>';
+        setTimeout(() => { window.open(url, '_blank'); }, 1000);
+    }
+
+    function copy(elId) {
+        const text = document.getElementById(elId).textContent;
+        navigator.clipboard.writeText(text);
+        event.target.textContent = '✓';
+        setTimeout(() => { event.target.textContent = 'Kopieren'; }, 1500);
+    }
+</script>
+</body>
+</html>

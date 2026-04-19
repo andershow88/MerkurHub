@@ -33,7 +33,7 @@ public class ApiController : Controller
             .Where(t => t.BenutzerId == CurrentUserId || t.Global)
             .OrderBy(t => t.Global ? 0 : 1)
             .ThenBy(t => t.Sortierung)
-            .Select(t => new { t.Id, t.Titel, t.Url, t.Icon, t.Farbe, t.Sortierung, t.BenutzerId, t.Global })
+            .Select(t => new { t.Id, t.Titel, t.Url, t.Icon, t.Farbe, t.Sortierung, t.BenutzerId, t.Global, t.AutoLogin, t.FeldUsername, t.FeldPasswort })
             .ToListAsync();
 
         return Ok(tiles);
@@ -58,6 +58,9 @@ public class ApiController : Controller
             Sortierung = maxSort + 1,
             BenutzerId = uid,
             Global = dto.Global && istAdmin,
+            AutoLogin = dto.AutoLogin,
+            FeldUsername = dto.FeldUsername,
+            FeldPasswort = dto.FeldPasswort,
             ErstelltAm = DateTime.UtcNow
         };
 
@@ -81,6 +84,9 @@ public class ApiController : Controller
         tile.Icon = dto.Icon;
         tile.Farbe = dto.Farbe;
         if (istAdmin) tile.Global = dto.Global;
+        tile.AutoLogin = dto.AutoLogin;
+        tile.FeldUsername = dto.FeldUsername;
+        tile.FeldPasswort = dto.FeldPasswort;
 
         await _db.SaveChangesAsync();
 
@@ -646,6 +652,40 @@ public class ApiController : Controller
         return result.ToArray();
     }
 
+    // ── Credentials ────────────────────────────────────────────────────
+
+    [HttpGet]
+    public async Task<IActionResult> GetCredential(int tileId)
+    {
+        var cred = await _db.UserCredentials
+            .FirstOrDefaultAsync(c => c.TileId == tileId && c.BenutzerId == CurrentUserId);
+        if (cred == null) return Json(new { username = "", passwort = "" });
+        return Json(new { username = cred.Username, passwort = cred.Passwort });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SaveCredential([FromBody] CredentialDto dto)
+    {
+        var cred = await _db.UserCredentials
+            .FirstOrDefaultAsync(c => c.TileId == dto.TileId && c.BenutzerId == CurrentUserId);
+        if (cred == null)
+        {
+            cred = new UserCredential { TileId = dto.TileId, BenutzerId = CurrentUserId };
+            _db.UserCredentials.Add(cred);
+        }
+        cred.Username = dto.Username;
+        cred.Passwort = dto.Passwort;
+        await _db.SaveChangesAsync();
+        return Json(new { ok = true });
+    }
+
+    public class CredentialDto
+    {
+        public int TileId { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Passwort { get; set; } = string.Empty;
+    }
+
     // ── DTOs ────────────────────────────────────────────────────────────
 
     public class TileCreateDto
@@ -655,6 +695,9 @@ public class ApiController : Controller
         public string? Icon { get; set; }
         public string? Farbe { get; set; }
         public bool Global { get; set; }
+        public bool AutoLogin { get; set; }
+        public string? FeldUsername { get; set; }
+        public string? FeldPasswort { get; set; }
     }
 
     public class TileReorderDto

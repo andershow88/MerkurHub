@@ -8,6 +8,7 @@ public class AppDbContext : DbContext
 
     public DbSet<Tile> Tiles => Set<Tile>();
     public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<UserCredential> UserCredentials => Set<UserCredential>();
     public DbSet<PdfDokument> PdfDokumente => Set<PdfDokument>();
     public DbSet<DokumentSeite> DokumentSeiten => Set<DokumentSeite>();
 }
@@ -22,7 +23,19 @@ public class Tile
     public int Sortierung { get; set; }
     public int BenutzerId { get; set; }
     public bool Global { get; set; }
+    public bool AutoLogin { get; set; }
+    public string? FeldUsername { get; set; }
+    public string? FeldPasswort { get; set; }
     public DateTime ErstelltAm { get; set; } = DateTime.UtcNow;
+}
+
+public class UserCredential
+{
+    public int Id { get; set; }
+    public int TileId { get; set; }
+    public int BenutzerId { get; set; }
+    public string Username { get; set; } = string.Empty;
+    public string Passwort { get; set; } = string.Empty;
 }
 
 public class AppUser

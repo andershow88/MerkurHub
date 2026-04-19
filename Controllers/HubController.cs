@@ -27,6 +27,15 @@ public class HubController : Controller
         return View(tiles);
     }
 
+    public IActionResult AutoLogin(int tileId, string url, string? feldUser, string? feldPass)
+    {
+        ViewBag.TileId = tileId;
+        ViewBag.Url = url;
+        ViewBag.FeldUser = feldUser;
+        ViewBag.FeldPass = feldPass;
+        return View();
+    }
+
     public IActionResult Error()
     {
         return View();

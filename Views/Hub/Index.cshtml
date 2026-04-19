@@ -320,6 +320,16 @@
                 <button class="color-pick" data-c="#6b6b6b" style="background:#6b6b6b;" onclick="pickColor(this)"></button>
             </div>
             <input type="hidden" id="tileFarbe" value="#1a1a2e" />
+            <label style="display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem; font-size:.85rem; cursor:pointer;">
+                <input type="checkbox" id="tileAutoLogin" onchange="document.getElementById('autoLoginFelder').style.display=this.checked?'block':'none'" style="width:18px; height:18px; accent-color:var(--mc-petrol,#00515A);" />
+                <span><i class="bi bi-shield-lock" style="color:var(--mc-petrol);"></i> AutoLogin (Zugangsdaten pro User)</span>
+            </label>
+            <div id="autoLoginFelder" style="display:none; margin-bottom:.75rem; padding:.75rem; background:var(--mc-bg-alt,#f7f7f5); border-radius:var(--mc-radius-sm); border:1px solid var(--mc-border);">
+                <label class="mc-label">Feld-Name Username</label>
+                <input class="mc-input" id="tileFeldUser" placeholder="z.B. ctl00_cphContent_txtUsername_I" style="margin-bottom:.5rem; font-size:.8rem;" />
+                <label class="mc-label">Feld-Name Passwort</label>
+                <input class="mc-input" id="tileFeldPass" placeholder="z.B. ctl00_cphContent_txtPassword_I" style="font-size:.8rem;" />
+            </div>
             @if (User.IsInRole("Admin"))
             {
                 <label style="display:flex; align-items:center; gap:.5rem; margin-bottom:.75rem; font-size:.85rem; cursor:pointer;">
@@ -1071,7 +1081,9 @@ async function loadTiles() {
     tiles.forEach(t => {
         const el = document.createElement('a');
         el.className = 'mc-tile';
-        el.href = t.url;
+        el.href = t.autoLogin
+            ? `/Hub/AutoLogin?tileId=${t.id}&url=${encodeURIComponent(t.url)}&feldUser=${encodeURIComponent(t.feldUsername||'')}&feldPass=${encodeURIComponent(t.feldPasswort||'')}`
+            : t.url;
         el.target = '_blank';
         el.draggable = true;
         el.dataset.tileId = t.id;
@@ -1081,21 +1093,22 @@ async function loadTiles() {
         el.ondragend = tileDragEnd;
         el.ondrop = function(e) { tileDrop(e, t.id); };
         el.innerHTML = `<div class="mc-tile-actions">
-            <button onclick="event.preventDefault();event.stopPropagation();tileBearbeiten(${t.id},'${esc(t.titel)}','${esc(t.url)}','${esc(t.icon||'')}','${esc(t.farbe||'#1a1a2e')}',${t.global||false})"><i class="bi bi-pencil"></i></button>
+            <button onclick="event.preventDefault();event.stopPropagation();tileBearbeiten(${t.id},'${esc(t.titel)}','${esc(t.url)}','${esc(t.icon||'')}','${esc(t.farbe||'#1a1a2e')}',${t.global||false},${t.autoLogin||false},'${esc(t.feldUsername||'')}','${esc(t.feldPasswort||'')}')"><i class="bi bi-pencil"></i></button>
             <button onclick="event.preventDefault();event.stopPropagation();tileLoeschen(${t.id})"><i class="bi bi-trash"></i></button>
         </div>
         <div class="mc-tile-icon" style="background:${t.farbe||'linear-gradient(135deg,#1a1a2e,#2c3e64)'};">
             <i class="bi ${t.icon||'bi-globe'}"></i>
         </div>
         <div class="mc-tile-title">${esc(t.titel)}</div>
-        ${t.global ? '<div style="font-size:.6rem;color:var(--mc-petrol);margin-top:2px;"><i class="bi bi-globe2"></i> Global</div>' : ''}`;
+        ${t.global ? '<div style="font-size:.6rem;color:var(--mc-petrol);margin-top:2px;"><i class="bi bi-globe2"></i> Global</div>' : ''}
+        ${t.autoLogin ? '<div style="font-size:.6rem;color:var(--mc-gold);margin-top:2px;"><i class="bi bi-shield-lock"></i> AutoLogin</div>' : ''}`;
         grid.insertBefore(el, addBtn);
     });
 }
 
 function esc(s) { return s ? s.replace(/'/g, "\\'").replace(/"/g, '&quot;') : ''; }
 
-function tileDialog(id, titel, url, icon, farbe, isGlobal) {
+function tileDialog(id, titel, url, icon, farbe, isGlobal, autoLogin, feldUser, feldPass) {
     document.getElementById('tileEditId').value = id || '';
     document.getElementById('tileTitel').value = titel || '';
     document.getElementById('tileUrl').value = url || '';
@@ -1105,12 +1118,16 @@ function tileDialog(id, titel, url, icon, farbe, isGlobal) {
     document.querySelectorAll('.color-pick').forEach(b => { b.classList.toggle('active', b.dataset.c === tilesFarbe); });
     const globalEl = document.getElementById('tileGlobal');
     if (globalEl) globalEl.checked = !!isGlobal;
+    const alEl = document.getElementById('tileAutoLogin');
+    if (alEl) { alEl.checked = !!autoLogin; document.getElementById('autoLoginFelder').style.display = autoLogin ? 'block' : 'none'; }
+    document.getElementById('tileFeldUser').value = feldUser || '';
+    document.getElementById('tileFeldPass').value = feldPass || '';
     document.getElementById('tileModalTitle').textContent = id ? 'Schnellzugriff bearbeiten' : 'Schnellzugriff hinzufügen';
     document.getElementById('tileModal').classList.add('active');
 }
 function tileModalClose() { document.getElementById('tileModal').classList.remove('active'); }
 
-function tileBearbeiten(id, titel, url, icon, farbe, isGlobal) { tileDialog(id, titel, url, icon, farbe, isGlobal); }
+function tileBearbeiten(id, titel, url, icon, farbe, isGlobal, autoLogin, feldUser, feldPass) { tileDialog(id, titel, url, icon, farbe, isGlobal, autoLogin, feldUser, feldPass); }
 
 async function tileLoeschen(id) {
     if (!confirm('Schnellzugriff löschen?')) return;
@@ -1126,7 +1143,10 @@ async function tileSpeichern() {
         url: document.getElementById('tileUrl').value,
         icon: document.getElementById('tileIcon').value,
         farbe: document.getElementById('tileFarbe').value,
-        global: globalEl ? globalEl.checked : false
+        global: globalEl ? globalEl.checked : false,
+        autoLogin: document.getElementById('tileAutoLogin')?.checked || false,
+        feldUsername: document.getElementById('tileFeldUser')?.value || null,
+        feldPasswort: document.getElementById('tileFeldPass')?.value || null
     };
     if (id) {
         await fetch('/api/TilesUpdate/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
