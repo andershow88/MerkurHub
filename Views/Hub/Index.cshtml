@@ -725,9 +725,16 @@ async function weatherMeinStandort(btn) {
     }
 
     document.getElementById('weatherCity').value = name;
-    weatherLoadCity(lat, lon, name);
+    weatherLoadCity(lat, lon, name); // setzt mh-weather-manual=1
     btn.innerHTML = origHtml;
     btn.disabled = false;
+}
+
+// Beim ersten Laden: alten IP-basierten Cache leeren (einmalig)
+if (localStorage.getItem('mh-weather-lat') && !localStorage.getItem('mh-weather-manual')) {
+    localStorage.removeItem('mh-weather-lat');
+    localStorage.removeItem('mh-weather-lon');
+    localStorage.removeItem('mh-weather-name');
 }
 
 function weatherCitySelect() {
@@ -748,6 +755,7 @@ function weatherLoadCity(lat, lon, name) {
     localStorage.setItem('mh-weather-lat', lat);
     localStorage.setItem('mh-weather-lon', lon);
     localStorage.setItem('mh-weather-name', name);
+    localStorage.setItem('mh-weather-manual', '1');
     fetchWeatherData(lat, lon, name);
 }
 
@@ -775,11 +783,12 @@ async function fetchWeatherData(lat, lon, locationName) {
 }
 
 async function loadWeather() {
-    // Gespeicherten Ort prüfen
+    // Gespeicherten Ort prüfen (nur wenn manuell gesetzt, nicht von IP)
     const savedLat = localStorage.getItem('mh-weather-lat');
     const savedLon = localStorage.getItem('mh-weather-lon');
     const savedName = localStorage.getItem('mh-weather-name');
-    if (savedLat && savedLon) {
+    const savedManual = localStorage.getItem('mh-weather-manual');
+    if (savedLat && savedLon && savedManual === '1') {
         document.getElementById('weatherCity').value = savedName || '';
         fetchWeatherData(parseFloat(savedLat), parseFloat(savedLon), savedName);
         return;
@@ -787,14 +796,19 @@ async function loadWeather() {
 
     let lat = null, lon = null, locationName = null;
 
+    // 1. Browser Geolocation (GPS/WLAN — genau)
     try {
         const pos = await new Promise((resolve, reject) => {
             if (!navigator.geolocation) return reject('no geo');
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000, maximumAge: 300000 });
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                timeout: 10000, maximumAge: 60000, enableHighAccuracy: true
+            });
         });
-        lat = pos.coords.latitude; lon = pos.coords.longitude;
+        lat = pos.coords.latitude;
+        lon = pos.coords.longitude;
     } catch {}
 
+    // 2. Fallback: IP (ungenau, 30-80km Abweichung möglich)
     if (!lat) {
         try {
             const ip = await fetch('https://ipapi.co/json/');
@@ -803,20 +817,20 @@ async function loadWeather() {
         } catch {}
     }
 
+    // 3. Fallback: München
     if (!lat) { lat = 48.1371; lon = 11.5754; locationName = 'München'; }
 
+    // Reverse Geocoding für genauen Ortsnamen
     if (!locationName) {
         try {
             const geo = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
             const gd = await geo.json();
-            locationName = gd.address?.city || gd.address?.town || gd.address?.village || '';
+            locationName = gd.address?.city || gd.address?.town || gd.address?.village || gd.address?.suburb || '';
         } catch {}
     }
 
     document.getElementById('weatherCity').value = locationName || '';
-    localStorage.setItem('mh-weather-lat', lat);
-    localStorage.setItem('mh-weather-lon', lon);
-    if (locationName) localStorage.setItem('mh-weather-name', locationName);
+    // Nicht automatisch in localStorage speichern (nur manuelle Auswahl)
     fetchWeatherData(lat, lon, locationName);
 }
 loadWeather();
