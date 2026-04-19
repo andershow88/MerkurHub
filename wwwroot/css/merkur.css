@@ -242,6 +242,7 @@ img { max-width: 100%; height: auto; }
 .mc-modal-body { padding: 1.25rem; }
 .mc-modal-close { background: transparent; border: none; font-size: 1.25rem; cursor: pointer; color: var(--mc-text-muted); padding: 0.25rem; transition: color 0.2s; }
 .mc-modal-close:hover { color: var(--mc-text-dark); }
+.mc-modal-body table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* 12. Buttons — Pill Shape (Merkur Privatbank Style) */
 .btn-mc {
@@ -359,6 +360,9 @@ textarea.mc-input { resize: vertical; min-height: 80px; }
     .mc-kpi-card { padding: 1rem; }
     .mc-kpi-label { font-size: 0.7rem; }
     .mc-kpi-value { font-size: 1.1rem; }
+    .mc-modal { width: 98%; max-height: 90vh; border-radius: 8px; }
+    .mc-topbar { height: 52px; }
+    .mc-main { margin-top: 52px; }
 }
 
 /* 22. Utility */

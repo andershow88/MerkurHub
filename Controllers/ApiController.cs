@@ -193,31 +193,38 @@ public class ApiController : Controller
 
                 var umstiege = legs.GetArrayLength() - 1;
 
-                // Verspaetung
+                // Verspaetung — Zeiten sicher extrahieren
                 var depDelay = firstLeg.TryGetProperty("departureDelay", out var dd) && dd.ValueKind == JsonValueKind.Number ? dd.GetInt32() : (int?)null;
                 var arrDelay = lastLeg.TryGetProperty("arrivalDelay", out var ad) && ad.ValueKind == JsonValueKind.Number ? ad.GetInt32() : (int?)null;
                 var depDelayMin = depDelay.HasValue ? depDelay.Value / 60 : (int?)null;
                 var arrDelayMin = arrDelay.HasValue ? arrDelay.Value / 60 : (int?)null;
 
-                // Tatsaechliche Zeiten bei Verspaetung
                 var abfahrtReal = abfahrt;
                 var ankunftReal = ankunft;
-                if (depDelay.HasValue && depDelay.Value > 0 && firstLeg.TryGetProperty("departure", out var depProp))
+
+                if (depDelay.HasValue && depDelay.Value > 0)
                 {
-                    var realDep = DateTimeOffset.Parse(depProp.GetString()!).AddSeconds(0); // departure ist schon die geplante
-                    // Wenn departureDelay gesetzt, berechne reale Zeit
-                    var planned = depStr.Length >= 16 ? depStr.Substring(11, 5) : abfahrt;
-                    abfahrtReal = DateTimeOffset.Parse(depStr).AddSeconds(depDelay.Value).ToString("HH:mm");
-                    abfahrt = planned;
+                    try
+                    {
+                        var planned = DateTimeOffset.Parse(depStr);
+                        var real = planned.AddSeconds(depDelay.Value);
+                        abfahrt = planned.ToString("HH:mm");
+                        abfahrtReal = real.ToString("HH:mm");
+                    }
+                    catch { }
                 }
                 if (arrDelay.HasValue && arrDelay.Value > 0)
                 {
-                    var planned = arrStr.Length >= 16 ? arrStr.Substring(11, 5) : ankunft;
-                    ankunftReal = DateTimeOffset.Parse(arrStr).AddSeconds(arrDelay.Value).ToString("HH:mm");
-                    ankunft = planned;
+                    try
+                    {
+                        var planned = DateTimeOffset.Parse(arrStr);
+                        var real = planned.AddSeconds(arrDelay.Value);
+                        ankunft = planned.ToString("HH:mm");
+                        ankunftReal = real.ToString("HH:mm");
+                    }
+                    catch { }
                 }
 
-                // Status
                 var status = "unbekannt";
                 if (depDelayMin.HasValue)
                     status = depDelayMin.Value <= 0 ? "puenktlich" : $"+{depDelayMin.Value} min";

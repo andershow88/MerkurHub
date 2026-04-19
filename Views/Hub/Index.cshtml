@@ -11,7 +11,7 @@
     </div>
     <div class="mc-section-body" style="display:none;">
 
-    <div style="display:grid; grid-template-columns:1fr minmax(280px, 360px); gap:1.25rem; align-items:start;">
+    <div class="hub-top-grid">
 
         <!-- Mobilität -->
         <div class="mc-mobility-grid">
@@ -117,13 +117,15 @@
                     </div>
                 </div>
                 <div style="padding:1.25rem; display:flex; gap:.65rem; flex-wrap:wrap; align-items:end;">
-                    <div style="flex:1; min-width:120px;">
+                    <div style="flex:1; min-width:120px; position:relative;">
                         <span style="font-size:.75rem; color:var(--mc-text-muted); font-weight:500;">Startort</span>
-                        <input type="text" class="mc-input" id="trafficFrom" placeholder="z.B. München" />
+                        <input type="text" class="mc-input" id="trafficFrom" placeholder="z.B. München" autocomplete="off" oninput="stadtAutocomplete(this,'trafficFromAc')" />
+                        <div class="ac-dropdown" id="trafficFromAc"></div>
                     </div>
-                    <div style="flex:1; min-width:120px;">
+                    <div style="flex:1; min-width:120px; position:relative;">
                         <span style="font-size:.75rem; color:var(--mc-text-muted); font-weight:500;">Zielort</span>
-                        <input type="text" class="mc-input" id="trafficTo" placeholder="z.B. Stuttgart" />
+                        <input type="text" class="mc-input" id="trafficTo" placeholder="z.B. Stuttgart" autocomplete="off" oninput="stadtAutocomplete(this,'trafficToAc')" />
+                        <div class="ac-dropdown" id="trafficToAc"></div>
                     </div>
                     <button onclick="verkehrSuchen()" style="padding:.6rem 1.25rem; border:none; border-radius:var(--mc-radius-sm); background:linear-gradient(135deg,#e6a817,#d49a10); color:#1a1a2e; font-weight:600; cursor:pointer; font-size:.9rem; box-shadow:0 2px 8px rgba(230,168,23,.25); transition:all .2s;">
                         <i class="bi bi-search"></i> Prüfen
@@ -318,6 +320,14 @@
     </div>
 </div>
 <style>
+.hub-top-grid{display:grid;grid-template-columns:1fr minmax(280px,360px);gap:1.25rem;align-items:start;}
+@@media(max-width:900px){
+    .hub-top-grid{grid-template-columns:1fr;}
+    .mc-mobility-grid{grid-template-columns:1fr !important;}
+}
+@@media(max-width:600px){
+    .hub-top-grid .mc-card{border-radius:8px;}
+}
 .mc-collapsible{cursor:pointer;user-select:none;position:relative;}
 .mc-collapsible:hover{opacity:.85;}
 .mc-chevron{margin-left:auto;font-size:.85rem;transition:transform .3s ease;color:var(--mc-text-muted);}
@@ -528,6 +538,29 @@ function acSelect(item, inputId, ddId) {
 }
 
 function escH(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+
+// Städte-Autocomplete für Verkehrslage (nutzt lokale Liste)
+const staedte = ['München','Berlin','Hamburg','Frankfurt','Köln','Stuttgart','Düsseldorf','Nürnberg',
+    'Augsburg','Hannover','Bremen','Dortmund','Essen','Leipzig','Dresden','Regensburg','Würzburg',
+    'Karlsruhe','Freiburg','Mannheim','Bonn','Kassel','Salzburg','Innsbruck','Wien','Zürich',
+    'Basel','Passau','Ulm','Ingolstadt','Rosenheim','Garmisch-Partenkirchen','Kempten','Lindau',
+    'Konstanz','Heidelberg','Saarbrücken','Koblenz','Aachen','Erfurt','Magdeburg','Rostock','Kiel'];
+
+function stadtAutocomplete(input, ddId) {
+    const q = input.value.trim().toLowerCase();
+    const dd = document.getElementById(ddId);
+    if (q.length < 1) { dd.classList.remove('open'); return; }
+    const treffer = staedte.filter(s => s.toLowerCase().includes(q)).slice(0, 10);
+    if (!treffer.length) { dd.classList.remove('open'); return; }
+    acPosition(input.id, ddId);
+    dd.innerHTML = treffer.map(s =>
+        `<div class="ac-item" onmousedown="event.preventDefault();" onclick="acSelect(this,'${input.id}','${ddId}')">
+            <i class="bi bi-geo-alt" style="color:#e6a817; flex-shrink:0;"></i>
+            <span class="ac-name">${escH(s)}</span>
+        </div>`
+    ).join('');
+    dd.classList.add('open');
+}
 
 // ═══ Wetter ═══════════════════════════════════════════════════════════════════
 const weatherCodes = {0:'bi-sun-fill',1:'bi-cloud-sun',2:'bi-cloud-sun',3:'bi-clouds',45:'bi-cloud-fog',48:'bi-cloud-fog',
