@@ -435,6 +435,7 @@ const dbStationen = [
 ];
 
 function dbAutocomplete(input, dropdownId) {
+    delete acStationIds[input.id]; // ID zurücksetzen bei Texteingabe
     const key = dropdownId;
     clearTimeout(acTimers[key]);
     const q = input.value.trim().toLowerCase();
@@ -465,14 +466,13 @@ function dbAutocomplete(input, dropdownId) {
                     dd.innerHTML = '<div class="ac-item" style="color:var(--mc-text-muted);justify-content:center;">Keine Ergebnisse</div>';
                     dd.classList.add('open');
                 } else if (data.length) {
-                    // Lokale + API-Ergebnisse mergen (Duplikate entfernen)
-                    const alle = [...lokal];
-                    data.forEach(s => { if (s.name && !alle.some(a => a.toLowerCase() === s.name.toLowerCase())) alle.push(s.name); });
+                    const alle = lokal.map(n => ({name: n, id: null}));
+                    data.forEach(s => { if (s.name && !alle.some(a => a.name.toLowerCase() === s.name.toLowerCase())) alle.push({name: s.name, id: s.id}); });
                     acPosition(input.id, dropdownId);
                     dd.innerHTML = alle.slice(0, 15).map(s =>
-                        `<div class="ac-item" onmousedown="event.preventDefault();" onclick="acSelect(this,'${input.id}','${dropdownId}')">
+                        `<div class="ac-item" onmousedown="event.preventDefault();" data-station-id="${s.id||''}" onclick="acSelect(this,'${input.id}','${dropdownId}')">
                             <i class="bi bi-geo-alt" style="color:#EC0016; flex-shrink:0;"></i>
-                            <span class="ac-name">${escH(typeof s === 'string' ? s : s)}</span>
+                            <span class="ac-name">${escH(s.name)}</span>
                         </div>`
                     ).join('');
                 }
@@ -538,9 +538,12 @@ function acPosition(inputId, ddId) {
     dd.style.maxHeight = maxH + 'px';
 }
 
+const acStationIds = {};
 function acSelect(item, inputId, ddId) {
     const name = item.querySelector('.ac-name').textContent;
+    const stationId = item.dataset?.stationId || null;
     document.getElementById(inputId).value = name;
+    if (stationId) acStationIds[inputId] = stationId;
     document.getElementById(ddId).classList.remove('open');
 }
 
@@ -763,7 +766,9 @@ async function bahnSuchen() {
     const ersteKlasse = klasse === '1';
     if (!from || !to) { alert('Bitte Von und Nach eingeben.'); return; }
     showResult('Deutsche Bahn — Verbindungen', loadingHtml('Verbindungen werden gesucht'));
-    const r = await fetch(`/api/BahnSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&time=${time}&ersteKlasse=${ersteKlasse}`);
+    const fId = acStationIds['bahnFrom'] || '';
+    const tId = acStationIds['bahnTo'] || '';
+    const r = await fetch(`/api/BahnSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&time=${time}&ersteKlasse=${ersteKlasse}&fromId=${encodeURIComponent(fId)}&toId=${encodeURIComponent(tId)}`);
     const data = await r.json();
     if (data.error) { showResult('Deutsche Bahn', `<div style="text-align:center;padding:1.5rem;color:var(--mc-danger);"><i class="bi bi-exclamation-triangle" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>${data.error}</div>`); return; }
     if (!Array.isArray(data) || !data.length) { showResult('Deutsche Bahn', '<div style="text-align:center;padding:1.5rem;color:var(--mc-text-muted);">Keine Verbindungen gefunden.</div>'); return; }

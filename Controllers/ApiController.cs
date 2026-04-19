@@ -139,23 +139,32 @@ public class ApiController : Controller
     // ── Deutsche Bahn (Real API via v6.db.transport.rest) ───────────────
 
     [HttpGet]
-    public async Task<IActionResult> BahnSearch([FromQuery] string from, [FromQuery] string to, [FromQuery] string? date, [FromQuery] string? time, [FromQuery] bool ersteKlasse = false)
+    public async Task<IActionResult> BahnSearch([FromQuery] string from, [FromQuery] string to, [FromQuery] string? date, [FromQuery] string? time, [FromQuery] bool ersteKlasse = false, [FromQuery] string? fromId = null, [FromQuery] string? toId = null)
     {
         try
         {
             var client = _httpClientFactory.CreateClient();
-            client.Timeout = TimeSpan.FromSeconds(15);
+            client.Timeout = TimeSpan.FromSeconds(25);
 
-            var fromResp = await client.GetStringAsync(
-                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(from)}&results=1");
-            var toResp = await client.GetStringAsync(
-                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(to)}&results=1");
+            // Station-IDs: direkt nutzen wenn vorhanden, sonst parallel suchen
+            if (string.IsNullOrEmpty(fromId) || string.IsNullOrEmpty(toId))
+            {
+                var fromTask = client.GetStringAsync(
+                    $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(from)}&results=1");
+                var toTask = client.GetStringAsync(
+                    $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(to)}&results=1");
 
-            using var fromDoc = JsonDocument.Parse(fromResp);
-            using var toDoc = JsonDocument.Parse(toResp);
+                await Task.WhenAll(fromTask, toTask);
 
-            var fromId = fromDoc.RootElement[0].GetProperty("id").GetString();
-            var toId = toDoc.RootElement[0].GetProperty("id").GetString();
+                using var fromDoc = JsonDocument.Parse(fromTask.Result);
+                using var toDoc = JsonDocument.Parse(toTask.Result);
+
+                if (fromDoc.RootElement.GetArrayLength() == 0 || toDoc.RootElement.GetArrayLength() == 0)
+                    return Json(new { error = $"Station nicht gefunden: {(fromDoc.RootElement.GetArrayLength() == 0 ? from : to)}" });
+
+                fromId = fromDoc.RootElement[0].GetProperty("id").GetString();
+                toId = toDoc.RootElement[0].GetProperty("id").GetString();
+            }
 
             var depParam = "";
             {
