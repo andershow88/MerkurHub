@@ -28,7 +28,7 @@
                     </div>
                 </div>
                 <div style="padding:1.25rem; display:flex; flex-direction:column; gap:.75rem;">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem;">
+                    <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:.5rem; align-items:end;">
                         <div style="position:relative;">
                             <div style="display:flex; align-items:center; gap:.4rem; margin-bottom:.3rem;">
                                 <span style="background:#EC0016; color:#fff; width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:700;">A</span>
@@ -37,6 +37,7 @@
                             <input type="text" class="mc-input" id="bahnFrom" placeholder="Bahnhof / Stadt" autocomplete="off" oninput="dbAutocomplete(this,'bahnFromAc')" onfocus="dbAutocomplete(this,'bahnFromAc')" />
                             <div class="ac-dropdown" id="bahnFromAc"></div>
                         </div>
+                        <button onclick="tauschen('bahnFrom','bahnTo')" class="swap-btn" title="Tauschen" style="margin-bottom:2px;"><i class="bi bi-arrow-left-right"></i></button>
                         <div style="position:relative;">
                             <div style="display:flex; align-items:center; gap:.4rem; margin-bottom:.3rem;">
                                 <span style="background:#EC0016; color:#fff; width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:700;">B</span>
@@ -81,12 +82,13 @@
                     </div>
                 </div>
                 <div style="padding:1.25rem; display:flex; flex-direction:column; gap:.75rem;">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:.75rem;">
+                    <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:.5rem; align-items:end;">
                         <div style="position:relative;">
                             <span style="font-size:.78rem; color:var(--mc-text-muted); font-weight:500; margin-bottom:.3rem; display:block;">Abfahrt</span>
                             <input type="text" class="mc-input" id="mvgFrom" placeholder="Haltestelle / Adresse" autocomplete="off" oninput="mvgAutocomplete(this,'mvgFromAc')" onfocus="mvgAutocomplete(this,'mvgFromAc')" />
                             <div class="ac-dropdown" id="mvgFromAc"></div>
                         </div>
+                        <button onclick="tauschen('mvgFrom','mvgTo')" class="swap-btn" title="Tauschen" style="margin-bottom:2px;"><i class="bi bi-arrow-left-right"></i></button>
                         <div style="position:relative;">
                             <span style="font-size:.78rem; color:var(--mc-text-muted); font-weight:500; margin-bottom:.3rem; display:block;">Ziel</span>
                             <input type="text" class="mc-input" id="mvgTo" placeholder="Haltestelle / Adresse" autocomplete="off" oninput="mvgAutocomplete(this,'mvgToAc')" onfocus="mvgAutocomplete(this,'mvgToAc')" />
@@ -116,16 +118,19 @@
                         <span style="font-size:.72rem; opacity:.7;">Stau, Baustellen &amp; Autobahn</span>
                     </div>
                 </div>
-                <div style="padding:1.25rem; display:flex; gap:.65rem; flex-wrap:wrap; align-items:end;">
-                    <div style="flex:1; min-width:120px; position:relative;">
-                        <span style="font-size:.75rem; color:var(--mc-text-muted); font-weight:500;">Startort</span>
-                        <input type="text" class="mc-input" id="trafficFrom" placeholder="z.B. München" autocomplete="off" oninput="stadtAutocomplete(this,'trafficFromAc')" />
-                        <div class="ac-dropdown" id="trafficFromAc"></div>
-                    </div>
-                    <div style="flex:1; min-width:120px; position:relative;">
-                        <span style="font-size:.75rem; color:var(--mc-text-muted); font-weight:500;">Zielort</span>
-                        <input type="text" class="mc-input" id="trafficTo" placeholder="z.B. Stuttgart" autocomplete="off" oninput="stadtAutocomplete(this,'trafficToAc')" />
-                        <div class="ac-dropdown" id="trafficToAc"></div>
+                <div style="padding:1.25rem; display:flex; flex-direction:column; gap:.65rem;">
+                    <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:.5rem; align-items:end;">
+                        <div style="position:relative;">
+                            <span style="font-size:.75rem; color:var(--mc-text-muted); font-weight:500;">Startort</span>
+                            <input type="text" class="mc-input" id="trafficFrom" placeholder="z.B. München" autocomplete="off" oninput="stadtAutocomplete(this,'trafficFromAc')" />
+                            <div class="ac-dropdown" id="trafficFromAc"></div>
+                        </div>
+                        <button onclick="tauschen('trafficFrom','trafficTo')" class="swap-btn" title="Tauschen" style="margin-bottom:2px;"><i class="bi bi-arrow-left-right"></i></button>
+                        <div style="position:relative;">
+                            <span style="font-size:.75rem; color:var(--mc-text-muted); font-weight:500;">Zielort</span>
+                            <input type="text" class="mc-input" id="trafficTo" placeholder="z.B. Stuttgart" autocomplete="off" oninput="stadtAutocomplete(this,'trafficToAc')" />
+                            <div class="ac-dropdown" id="trafficToAc"></div>
+                        </div>
                     </div>
                     <button onclick="verkehrSuchen()" style="padding:.6rem 1.25rem; border:none; border-radius:var(--mc-radius-sm); background:linear-gradient(135deg,#e6a817,#d49a10); color:#1a1a2e; font-weight:600; cursor:pointer; font-size:.9rem; box-shadow:0 2px 8px rgba(230,168,23,.25); transition:all .2s;">
                         <i class="bi bi-search"></i> Prüfen
@@ -274,7 +279,7 @@
         <div style="position:relative; max-width:340px; flex:1;">
             <input type="text" class="mc-input" id="aktieSymbol" placeholder="Aktie suchen (z.B. Siemens, Apple, Bitcoin)" autocomplete="off"
                    oninput="aktienAutocomplete()" onkeydown="if(event.key==='Enter'){event.preventDefault();aktieHinzufuegen();}" />
-            <div class="ac-dropdown" id="aktienAc"></div>
+            <div class="ac-dropdown" id="aktienAc" style="max-height:min(500px,70vh) !important;"></div>
         </div>
         <button class="btn-mc btn-mc-primary" onclick="aktieHinzufuegen()"><i class="bi bi-plus-lg"></i> Hinzufügen</button>
         <button class="btn-mc btn-mc-outline" onclick="loadAktien()" title="Alle aktualisieren"><i class="bi bi-arrow-clockwise"></i> Alle aktualisieren</button>
@@ -328,6 +333,8 @@
 @@media(max-width:600px){
     .hub-top-grid .mc-card{border-radius:8px;}
 }
+.swap-btn{background:none;border:1px solid var(--mc-border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mc-text-muted);font-size:.85rem;transition:all .2s;flex-shrink:0;}
+.swap-btn:hover{border-color:var(--mc-petrol,var(--mc-primary));color:var(--mc-petrol,var(--mc-primary));transform:rotate(180deg);}
 .mc-collapsible{cursor:pointer;user-select:none;position:relative;}
 .mc-collapsible:hover{opacity:.85;}
 .mc-chevron{margin-left:auto;font-size:.85rem;transition:transform .3s ease;color:var(--mc-text-muted);}
@@ -539,7 +546,16 @@ function acSelect(item, inputId, ddId) {
 
 function escH(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
 
-// Städte-Autocomplete für Verkehrslage (nutzt lokale Liste)
+function tauschen(fromId, toId) {
+    const a = document.getElementById(fromId);
+    const b = document.getElementById(toId);
+    if (!a || !b) return;
+    const tmp = a.value;
+    a.value = b.value;
+    b.value = tmp;
+}
+
+// Städte-Autocomplete für Verkehrslage (lokal + API-Fallback)
 const staedte = [
     'München','Berlin','Hamburg','Frankfurt','Köln','Stuttgart','Düsseldorf','Nürnberg',
     'Augsburg','Hannover','Bremen','Dortmund','Essen','Duisburg','Bochum','Wuppertal',
@@ -558,20 +574,47 @@ const staedte = [
     'Straßburg','Prag','Amsterdam','Luxemburg'
 ];
 
+let stadtTimer = null;
 function stadtAutocomplete(input, ddId) {
+    clearTimeout(stadtTimer);
     const q = input.value.trim().toLowerCase();
     const dd = document.getElementById(ddId);
     if (q.length < 1) { dd.classList.remove('open'); return; }
-    const treffer = staedte.filter(s => s.toLowerCase().includes(q)).slice(0, 10);
-    if (!treffer.length) { dd.classList.remove('open'); return; }
-    acPosition(input.id, ddId);
-    dd.innerHTML = treffer.map(s =>
-        `<div class="ac-item" onmousedown="event.preventDefault();" onclick="acSelect(this,'${input.id}','${ddId}')">
-            <i class="bi bi-geo-alt" style="color:#e6a817; flex-shrink:0;"></i>
-            <span class="ac-name">${escH(s)}</span>
-        </div>`
-    ).join('');
-    dd.classList.add('open');
+
+    // Sofort lokale Treffer
+    const lokal = staedte.filter(s => s.toLowerCase().includes(q)).slice(0, 8);
+    if (lokal.length) {
+        acPosition(input.id, ddId);
+        dd.innerHTML = lokal.map(s =>
+            `<div class="ac-item" onmousedown="event.preventDefault();" onclick="acSelect(this,'${input.id}','${ddId}')">
+                <i class="bi bi-geo-alt" style="color:#e6a817; flex-shrink:0;"></i>
+                <span class="ac-name">${escH(s)}</span>
+            </div>`
+        ).join('');
+        dd.classList.add('open');
+    }
+
+    // API-Fallback für kleine Orte (Open-Meteo Geocoding)
+    if (lokal.length < 3 && q.length >= 3) {
+        stadtTimer = setTimeout(async () => {
+            try {
+                const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=de&country_code=DE`);
+                const data = await r.json();
+                if (!data.results?.length) return;
+                const apiOrte = data.results.map(c => c.name + (c.admin1 ? ', ' + c.admin1 : ''));
+                const alle = [...lokal];
+                apiOrte.forEach(o => { if (!alle.some(a => a.toLowerCase() === o.toLowerCase())) alle.push(o); });
+                acPosition(input.id, ddId);
+                dd.innerHTML = alle.slice(0, 12).map(s =>
+                    `<div class="ac-item" onmousedown="event.preventDefault();" onclick="acSelect(this,'${input.id}','${ddId}')">
+                        <i class="bi bi-geo-alt" style="color:#e6a817; flex-shrink:0;"></i>
+                        <span class="ac-name">${escH(typeof s === 'string' ? s : s)}</span>
+                    </div>`
+                ).join('');
+                dd.classList.add('open');
+            } catch {}
+        }, 300);
+    }
 }
 
 // ═══ Wetter ═══════════════════════════════════════════════════════════════════
