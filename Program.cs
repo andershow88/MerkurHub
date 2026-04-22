@@ -175,6 +175,14 @@ using (var scope = app.Services.CreateScope())
             try { await cu.ExecuteNonQueryAsync(); } catch { }
         }
 
+        // Admin-Account sicherstellen
+        var adminHash = Hash("anderson");
+        using var cmdAdmin = conn.CreateCommand();
+        cmdAdmin.CommandText = isPostgres
+            ? $"INSERT INTO \"Users\" (\"Benutzername\", \"PasswortHash\", \"Anzeigename\", \"Rolle\", \"IstAktiv\") SELECT 'yh04sc9', '{adminHash}', 'Anderson B\u00fcttenbender', 'Admin', TRUE WHERE NOT EXISTS (SELECT 1 FROM \"Users\" WHERE \"Benutzername\" = 'yh04sc9');"
+            : $"INSERT OR IGNORE INTO \"Users\" (\"Benutzername\", \"PasswortHash\", \"Anzeigename\", \"Rolle\", \"IstAktiv\") VALUES ('yh04sc9', '{adminHash}', 'Anderson B\u00fcttenbender', 'Admin', 1);";
+        try { await cmdAdmin.ExecuteNonQueryAsync(); } catch { }
+
         // Tiles.Global Spalte nachrüsten
         using var cmd2 = conn.CreateCommand();
         cmd2.CommandText = isPostgres
