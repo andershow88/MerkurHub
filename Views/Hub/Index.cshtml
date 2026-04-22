@@ -1123,19 +1123,47 @@ async function autoLoginKlick(tileId, url) {
     const cred = await r.json();
 
     if (!cred.username) {
-        // Erste Nutzung — Credentials eingeben
         autoLoginErsteinrichtung(tileId, url);
         return;
     }
 
-    // Username in Zwischenablage kopieren
+    // Tile-Daten laden für Feld-Namen
+    const tilesResp = await fetch('/api/Tiles');
+    const tiles = await tilesResp.json();
+    const tile = tiles.find(t => t.id === tileId);
+    const feldUser = tile?.feldUsername || 'ctl00_cphContent_txtUsername_I';
+    const feldPass = tile?.feldPasswort || 'ctl00_cphContent_txtPassword_I';
+
+    // Versuche lokale MerkurLogin-App (Selenium Auto-Fill)
+    try {
+        const ping = await fetch('http://localhost:17580/ping', { signal: AbortSignal.timeout(1500) });
+        const pingData = await ping.json();
+        if (pingData.status === 'ok') {
+            // Lokale App läuft → AutoLogin starten
+            autoLoginPopupStatus('Edge wird geöffnet und Login ausgefüllt...');
+            const loginResp = await fetch(`http://localhost:17580/autologin?url=${encodeURIComponent(url)}&user=${encodeURIComponent(cred.username)}&pass=${encodeURIComponent(cred.passwort)}&feldUser=${encodeURIComponent(feldUser)}&feldPass=${encodeURIComponent(feldPass)}`);
+            const loginData = await loginResp.json();
+            if (loginData.status === 'ok') {
+                autoLoginPopupStatus('<i class="bi bi-check-circle-fill" style="color:var(--mc-success);"></i> Login automatisch ausgefüllt — Edge ist geöffnet', 5000);
+                return;
+            }
+        }
+    } catch {}
+
+    // Fallback: Zwischenablage + manuell
     await navigator.clipboard.writeText(cred.username);
-
-    // URL im neuen Tab öffnen
     window.open(url, '_blank');
-
-    // Popup mit Passwort-Kopieren anzeigen
     autoLoginPopupZeigen(cred.username, cred.passwort, tileId);
+}
+
+function autoLoginPopupStatus(html, autoClose) {
+    document.getElementById('alPopup')?.remove();
+    const popup = document.createElement('div');
+    popup.id = 'alPopup';
+    popup.style.cssText = 'position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); z-index:9999; background:var(--mc-bg-card,#fff); border:1px solid var(--mc-border); border-radius:var(--mc-radius); box-shadow:0 8px 32px rgba(0,0,0,.15); padding:1rem 1.5rem; max-width:400px; width:90%; text-align:center; animation:alSlideUp .3s ease-out;';
+    popup.innerHTML = `<div style="font-size:.9rem;">${html}</div>`;
+    document.body.appendChild(popup);
+    if (autoClose) setTimeout(() => popup.remove(), autoClose);
 }
 
 function autoLoginPopupZeigen(username, passwort, tileId) {
