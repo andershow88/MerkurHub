@@ -1,0 +1,115 @@
+@model List<MerkurHub.Models.AppUser>
+@{ ViewData["Title"] = "Benutzerverwaltung"; }
+
+<section class="mc-section">
+    <div class="mc-section-title"><i class="bi bi-people"></i> Benutzerverwaltung</div>
+
+    @if (TempData["Erfolg"] is string msg)
+    {
+        <div style="background:rgba(162,174,60,.1); border:1px solid var(--mc-success); border-radius:var(--mc-radius-sm); padding:.75rem 1rem; margin-bottom:1rem; font-size:.875rem;">
+            <i class="bi bi-check-circle" style="color:var(--mc-success);"></i> @msg
+            @if (TempData["EinladungsLink"] is string link)
+            {
+                <div style="margin-top:.5rem; padding:.5rem .75rem; background:var(--mc-bg-alt); border-radius:var(--mc-radius-sm); word-break:break-all; font-family:monospace; font-size:.8rem;">
+                    <a href="@link">@link</a>
+                    <button onclick="navigator.clipboard.writeText('@link');this.textContent='Kopiert!'" style="margin-left:.5rem; border:1px solid var(--mc-border); background:var(--mc-bg-card); border-radius:4px; padding:.15rem .5rem; cursor:pointer; font-size:.75rem;">Kopieren</button>
+                </div>
+                <div style="font-size:.75rem; color:var(--mc-text-muted); margin-top:.35rem;">Diesen Link an den neuen Benutzer senden. Gültig für 7 Tage.</div>
+            }
+        </div>
+    }
+    @if (TempData["Fehler"] is string err)
+    {
+        <div style="background:rgba(167,12,35,.1); border:1px solid var(--mc-danger); border-radius:var(--mc-radius-sm); padding:.75rem 1rem; margin-bottom:1rem; font-size:.875rem; color:var(--mc-danger);">
+            <i class="bi bi-exclamation-triangle"></i> @err
+        </div>
+    }
+
+    <!-- Neuen Benutzer einladen -->
+    <div class="mc-card" style="margin-bottom:1.5rem;">
+        <h3 style="font-size:.95rem; margin:0 0 1rem;"><i class="bi bi-person-plus" style="color:var(--mc-petrol);"></i> Neuen Benutzer einladen</h3>
+        <form method="post" asp-action="BenutzerEinladen" style="display:flex; gap:.75rem; flex-wrap:wrap; align-items:end;">
+            <div style="flex:1; min-width:180px;">
+                <label style="font-size:.8rem; color:var(--mc-text-muted); display:block; margin-bottom:.25rem;">E-Mail-Adresse</label>
+                <input name="email" type="email" required placeholder="name@merkur-privatbank.de" style="width:100%; padding:.5rem .75rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius-sm); font-size:.875rem;" />
+            </div>
+            <div style="min-width:150px;">
+                <label style="font-size:.8rem; color:var(--mc-text-muted); display:block; margin-bottom:.25rem;">Anzeigename</label>
+                <input name="anzeigename" placeholder="Max Mustermann" style="width:100%; padding:.5rem .75rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius-sm); font-size:.875rem;" />
+            </div>
+            <div style="min-width:110px;">
+                <label style="font-size:.8rem; color:var(--mc-text-muted); display:block; margin-bottom:.25rem;">Rolle</label>
+                <select name="rolle" style="width:100%; padding:.5rem .75rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius-sm); font-size:.875rem;">
+                    <option value="User">User</option>
+                    <option value="Admin">Admin</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-mc btn-mc-filled" style="white-space:nowrap;"><i class="bi bi-send"></i> Einladungslink erstellen</button>
+        </form>
+    </div>
+
+    <!-- Benutzerliste -->
+    <div class="mc-card">
+        <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:.875rem;">
+                <thead>
+                    <tr style="border-bottom:2px solid var(--mc-border); text-align:left;">
+                        <th style="padding:.6rem .75rem;">Benutzer</th>
+                        <th>Anzeigename</th>
+                        <th>E-Mail</th>
+                        <th>Rolle</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in Model)
+                    {
+                        <tr style="border-bottom:1px solid var(--mc-border);">
+                            <td style="padding:.55rem .75rem; font-weight:600;">@(string.IsNullOrEmpty(u.Benutzername) ? "(noch nicht registriert)" : u.Benutzername)</td>
+                            <td>@u.Anzeigename</td>
+                            <td style="font-size:.8rem; color:var(--mc-text-muted);">@(u.Email ?? "—")</td>
+                            <td>
+                                <form method="post" asp-action="RolleAendern" asp-route-id="@u.Id" style="display:inline;">
+                                    <select name="rolle" onchange="this.form.submit()" style="padding:.2rem .4rem; border:1px solid var(--mc-border); border-radius:4px; font-size:.8rem;">
+                                        <option value="User" selected="@(u.Rolle == "User")">User</option>
+                                        <option value="Admin" selected="@(u.Rolle == "Admin")">Admin</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td>
+                                @if (u.IstAktiv)
+                                {
+                                    <span style="color:var(--mc-success); font-size:.8rem;"><i class="bi bi-check-circle-fill"></i> Aktiv</span>
+                                }
+                                else if (u.EinladungsToken != null)
+                                {
+                                    <span style="color:var(--mc-gold); font-size:.8rem;"><i class="bi bi-hourglass-split"></i> Eingeladen</span>
+                                }
+                                else
+                                {
+                                    <span style="color:var(--mc-text-muted); font-size:.8rem;"><i class="bi bi-x-circle"></i> Deaktiviert</span>
+                                }
+                            </td>
+                            <td style="white-space:nowrap;">
+                                <form method="post" asp-action="BenutzerAktivieren" asp-route-id="@u.Id" style="display:inline;">
+                                    <button type="submit" style="border:1px solid var(--mc-border); background:var(--mc-bg-card); border-radius:4px; padding:.2rem .5rem; cursor:pointer; font-size:.75rem;" title="@(u.IstAktiv ? "Deaktivieren" : "Aktivieren")">
+                                        <i class="bi bi-@(u.IstAktiv ? "pause" : "play")"></i>
+                                    </button>
+                                </form>
+                                @if (u.Benutzername != "yh04sc9")
+                                {
+                                    <form method="post" asp-action="BenutzerLoeschen" asp-route-id="@u.Id" style="display:inline;" onsubmit="return confirm('Benutzer löschen?')">
+                                        <button type="submit" style="border:1px solid var(--mc-danger); color:var(--mc-danger); background:transparent; border-radius:4px; padding:.2rem .5rem; cursor:pointer; font-size:.75rem;" title="Löschen">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>

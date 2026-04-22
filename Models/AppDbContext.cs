@@ -44,8 +44,11 @@ public class AppUser
     public string Benutzername { get; set; } = string.Empty;
     public string PasswortHash { get; set; } = string.Empty;
     public string Anzeigename { get; set; } = string.Empty;
+    public string? Email { get; set; }
     public string Rolle { get; set; } = "User";
     public bool IstAktiv { get; set; } = true;
+    public string? EinladungsToken { get; set; }
+    public DateTime? EinladungGueltigBis { get; set; }
 }
 
 public class PdfDokument

@@ -160,6 +160,21 @@ using (var scope = app.Services.CreateScope())
             }
         }
 
+        // AppUser neue Spalten
+        foreach (var col in isPostgres
+            ? new[] {
+                "ALTER TABLE \"Users\" ADD COLUMN IF NOT EXISTS \"Email\" TEXT NULL",
+                "ALTER TABLE \"Users\" ADD COLUMN IF NOT EXISTS \"EinladungsToken\" TEXT NULL",
+                "ALTER TABLE \"Users\" ADD COLUMN IF NOT EXISTS \"EinladungGueltigBis\" TIMESTAMP WITH TIME ZONE NULL" }
+            : new[] {
+                "ALTER TABLE \"Users\" ADD COLUMN \"Email\" TEXT NULL",
+                "ALTER TABLE \"Users\" ADD COLUMN \"EinladungsToken\" TEXT NULL",
+                "ALTER TABLE \"Users\" ADD COLUMN \"EinladungGueltigBis\" TEXT NULL" })
+        {
+            using var cu = conn.CreateCommand(); cu.CommandText = col;
+            try { await cu.ExecuteNonQueryAsync(); } catch { }
+        }
+
         // Tiles.Global Spalte nachrüsten
         using var cmd2 = conn.CreateCommand();
         cmd2.CommandText = isPostgres
@@ -171,10 +186,7 @@ using (var scope = app.Services.CreateScope())
 
         if (!await db.Users.AnyAsync())
         {
-            db.Users.AddRange(
-                new AppUser { Benutzername = "admin", PasswortHash = Hash("Admin1234!"), Anzeigename = "Administrator", Rolle = "Admin" },
-                new AppUser { Benutzername = "user", PasswortHash = Hash("Demo1234!"), Anzeigename = "Max Mustermann", Rolle = "User" }
-            );
+            db.Users.Add(new AppUser { Benutzername = "yh04sc9", PasswortHash = Hash("anderson"), Anzeigename = "Anderson B\u00fcttenbender", Rolle = "Admin" });
             await db.SaveChangesAsync();
         }
     }
@@ -185,10 +197,7 @@ using (var scope = app.Services.CreateScope())
         {
             await db.Database.EnsureDeletedAsync();
             await db.Database.EnsureCreatedAsync();
-            db.Users.AddRange(
-                new AppUser { Benutzername = "admin", PasswortHash = Hash("Admin1234!"), Anzeigename = "Administrator", Rolle = "Admin" },
-                new AppUser { Benutzername = "user", PasswortHash = Hash("Demo1234!"), Anzeigename = "Max Mustermann", Rolle = "User" }
-            );
+            db.Users.Add(new AppUser { Benutzername = "yh04sc9", PasswortHash = Hash("anderson"), Anzeigename = "Anderson B\u00fcttenbender", Rolle = "Admin" });
             await db.SaveChangesAsync();
         }
         catch { }

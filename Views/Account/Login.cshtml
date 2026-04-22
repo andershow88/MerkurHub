@@ -214,9 +214,16 @@
         <div class="login-subtitle">Merkur Privatbank KGaA</div>
 
         <form id="loginForm" autocomplete="on">
-            <!-- Felder ausgeblendet – Auto-Login als admin -->
-            <input type="hidden" id="benutzername" value="admin" />
-            <input type="hidden" id="passwort" value="Admin1234!" />
+            <div class="form-group">
+                <label for="benutzername">Benutzername</label>
+                <input type="text" id="benutzername" name="benutzername"
+                       autocomplete="username" placeholder="Benutzername" required autofocus />
+            </div>
+            <div class="form-group">
+                <label for="passwort">Passwort</label>
+                <input type="password" id="passwort" name="passwort"
+                       autocomplete="current-password" placeholder="Passwort" required />
+            </div>
             <button type="submit" class="btn-login" id="btnLogin">
                 <span style="position:relative;z-index:1;">Anmelden</span>
             </button>

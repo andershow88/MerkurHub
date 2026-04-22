@@ -36,6 +36,12 @@
         <a href="/Dokumente/Index" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Dokumente" ? "active" : "")">
             <i class="bi bi-file-earmark-pdf"></i> Dokumentenregister
         </a>
+        @if (User.IsInRole("Admin"))
+        {
+            <a href="/Admin/Benutzer" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" ? "active" : "")">
+                <i class="bi bi-people"></i> Benutzer
+            </a>
+        }
     </div>
 
     <div class="mc-topbar-right">

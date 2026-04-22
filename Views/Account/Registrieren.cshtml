@@ -1,0 +1,62 @@
+@{ Layout = null; }
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registrierung - MerkurHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Roboto:wght@400;500;700&display=swap" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@@1.11.3/font/bootstrap-icons.min.css" />
+    <style>
+        body { font-family: 'Open Sans', sans-serif; background: linear-gradient(145deg, #00515A 0%, #003d44 50%, #002a2e 100%); color: #e4e6ea; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .card { background: rgba(255,255,255,.06); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.1); border-radius: 24px; padding: 2.5rem 2rem; max-width: 440px; width: 92%; text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,.3); }
+        .card img { width: 80px; margin-bottom: 1rem; }
+        .card h1 { font-family: 'Roboto', sans-serif; font-size: 1.5rem; color: #C8A96E; margin: 0 0 .25rem; }
+        .card p { font-size: .85rem; color: rgba(255,255,255,.5); margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; text-align: left; }
+        .form-group label { display: block; font-size: .78rem; font-weight: 600; color: rgba(255,255,255,.5); margin-bottom: .3rem; text-transform: uppercase; }
+        .form-group input { width: 100%; padding: .7rem 1rem; font-size: .95rem; color: #e4e6ea; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 12px; outline: none; }
+        .form-group input:focus { border-color: #C8A96E; box-shadow: 0 0 0 3px rgba(200,169,110,.15); }
+        .btn { width: 100%; padding: .75rem; font-size: 1rem; font-weight: 600; border: none; border-radius: 12px; background: #C8A96E; color: #002a2e; cursor: pointer; margin-top: .5rem; }
+        .btn:hover { opacity: .9; }
+        .error { color: #e85d5d; font-size: .85rem; margin-top: .5rem; }
+        .info { font-size: .8rem; color: rgba(255,255,255,.4); margin-top: 1rem; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <img src="/images/merkur-logo.svg" alt="Merkur" />
+    <h1>MerkurHub</h1>
+    <p>Registrierung — Willkommen!</p>
+
+    <form method="post" asp-action="Registrieren">
+        <input type="hidden" name="token" value="@ViewBag.Token" />
+        <div class="form-group">
+            <label>E-Mail</label>
+            <input type="text" value="@ViewBag.Email" disabled style="opacity:.6;" />
+        </div>
+        <div class="form-group">
+            <label>Benutzername wählen</label>
+            <input type="text" name="benutzername" required autofocus placeholder="z.B. m.mustermann" />
+        </div>
+        <div class="form-group">
+            <label>Anzeigename</label>
+            <input type="text" name="anzeigename" value="@ViewBag.Anzeigename" placeholder="Max Mustermann" />
+        </div>
+        <div class="form-group">
+            <label>Passwort wählen (min. 6 Zeichen)</label>
+            <input type="password" name="passwort" required minlength="6" placeholder="Sicheres Passwort" />
+        </div>
+        <button type="submit" class="btn">Registrieren & Anmelden</button>
+    </form>
+
+    @if (ViewBag.Fehler is string err)
+    {
+        <div class="error"><i class="bi bi-exclamation-triangle"></i> @err</div>
+    }
+    <div class="info">Nach der Registrierung wirst du automatisch angemeldet.</div>
+</div>
+</body>
+</html>
