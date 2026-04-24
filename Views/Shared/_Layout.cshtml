@@ -130,8 +130,9 @@
             <span style="font-size:.72rem; opacity:.7;">Dokumente durchsuchen</span>
         </div>
         <div style="display:flex; gap:.25rem;">
+            <button onclick="ragPopout()" title="In eigenem Fenster &ouml;ffnen" style="background:transparent; border:none; color:#fff; cursor:pointer; padding:.25rem .4rem; font-size:.9rem;"><i class="bi bi-box-arrow-up-right"></i></button>
             <button onclick="ragMaximieren()" title="Maximieren" style="background:transparent; border:none; color:#fff; cursor:pointer; padding:.25rem .4rem; font-size:.9rem;"><i class="bi bi-arrows-fullscreen" id="ragMaxIcon"></i></button>
-            <button onclick="ragFensterSchliessen()" title="Schließen" style="background:transparent; border:none; color:#fff; cursor:pointer; padding:.25rem .4rem; font-size:.9rem;"><i class="bi bi-x-lg"></i></button>
+            <button onclick="ragFensterSchliessen()" title="Schlie&szlig;en" style="background:transparent; border:none; color:#fff; cursor:pointer; padding:.25rem .4rem; font-size:.9rem;"><i class="bi bi-x-lg"></i></button>
         </div>
     </div>
 
@@ -197,6 +198,81 @@ function ragMaximieren() {
         f.style.display = 'flex';
         document.getElementById('ragMaxIcon').className = 'bi bi-arrows-fullscreen';
     }
+}
+
+function ragPopout() {
+    var w = window.open('', 'MerkurHub_Wissen', 'width=620,height=720,resizable=yes,scrollbars=no');
+    if (!w) { alert('Popup wurde blockiert. Bitte erlauben Sie Popups f\u00fcr diese Seite.'); return; }
+    var theme = document.documentElement.getAttribute('data-theme') || 'light';
+    var petrol = theme === 'dark' ? '#5aabb5' : '#00515A';
+    var gold = theme === 'dark' ? '#d4b47a' : '#C8A96E';
+    var bg = theme === 'dark' ? '#111118' : '#f3f5f8';
+    var surface = theme === 'dark' ? '#1c1c26' : '#ffffff';
+    var border = theme === 'dark' ? '#2c2c3a' : '#e4e7eb';
+    var text = theme === 'dark' ? '#d0d0dc' : '#4a5568';
+    var textDark = theme === 'dark' ? '#e8e8f0' : '#1a202c';
+    var textMuted = theme === 'dark' ? '#7a7a8a' : '#8895a7';
+    var verlaufJson = JSON.stringify(ragVerlauf);
+    w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Wissenssuche \u2013 MerkurHub</title>'
+        + '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">'
+        + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">'
+        + '<style>'
+        + '*{box-sizing:border-box;margin:0;padding:0}'
+        + 'body{font-family:Inter,system-ui,sans-serif;background:'+bg+';color:'+text+';height:100vh;display:flex;flex-direction:column;}'
+        + '.header{padding:.75rem 1rem;background:'+petrol+';color:#fff;display:flex;align-items:center;gap:.5rem;}'
+        + '.header i.star{color:'+gold+';font-size:1.15rem}'
+        + '.chat{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem;}'
+        + '.msg-user{align-self:flex-end;max-width:85%}'
+        + '.msg-ast{align-self:flex-start;max-width:90%}'
+        + '.bubble{word-wrap:break-word;line-height:1.5;font-size:.9rem;padding:.65rem .8rem;border-radius:10px;}'
+        + '.msg-user .bubble{background:'+petrol+';color:#fff;}'
+        + '.msg-ast .bubble{background:'+surface+';border:1px solid '+border+';color:'+text+';}'
+        + '.bubble strong{color:'+textDark+'}'
+        + '.bubble p:last-child{margin-bottom:0}'
+        + '.bubble ul,.bubble ol{margin:.25rem 0 .25rem 1.25rem;padding:0}'
+        + '.bubble pre{background:rgba(0,0,0,.05);padding:.4rem;border-radius:4px;font-size:.8rem;white-space:pre-wrap}'
+        + '.bubble code{background:rgba(0,0,0,.06);padding:.1rem .25rem;border-radius:3px;font-size:.85em}'
+        + '.bubble a{color:'+petrol+';text-decoration:underline}'
+        + '.label{font-size:.7rem;color:'+textMuted+';margin-bottom:.2rem;}'
+        + '.bar{padding:.75rem;border-top:1px solid '+border+';background:'+surface+';display:flex;gap:.5rem;}'
+        + '.bar input{flex:1;padding:.5rem .75rem;border:1px solid '+border+';border-radius:8px;background:'+bg+';color:'+text+';font-size:.9rem;outline:none;font-family:inherit;}'
+        + '.bar input:focus{border-color:'+petrol+'}'
+        + '.bar button{padding:.5rem 1rem;border:none;border-radius:8px;background:'+petrol+';color:#fff;cursor:pointer;font-size:1rem;}'
+        + '.spin{width:18px;height:18px;border:2px solid '+border+';border-top-color:'+petrol+';border-radius:50%;animation:s .7s linear infinite;display:inline-block}'
+        + '@@keyframes s{to{transform:rotate(360deg)}}'
+        + '</style></head><body>'
+        + '<div class="header"><i class="bi bi-book star"></i><strong>Wissenssuche</strong><span style="font-size:.75rem;opacity:.8;">Dokumente durchsuchen</span></div>'
+        + '<div class="chat" id="chat"></div>'
+        + '<div class="bar"><input id="inp" placeholder="Frage zu Dokumenten eingeben\u2026" autofocus /><button onclick="senden()"><i class="bi bi-send"></i></button></div>'
+        + '<script>'
+        + 'var verlauf='+verlaufJson+';'
+        + 'var besetzt=false;'
+        + 'var parentOrigin='+JSON.stringify(window.location.origin)+';'
+        + 'document.getElementById("inp").addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();senden();}});'
+        + 'function md(r){if(!r)return"";var s=r.replace(/&/g,"\\&amp;").replace(/</g,"\\&lt;").replace(/>/g,"\\&gt;");'
+        + 's=s.replace(/```(\\w*)\\n?([\\s\\S]*?)```/g,function(m,l,c){return"<pre>"+c.trim()+"</pre>";});'
+        + 's=s.replace(/`([^`]+)`/g,"<code>$1</code>");'
+        + 's=s.replace(/\\*\\*([^*]+)\\*\\*/g,"<strong>$1</strong>");'
+        + 's=s.replace(/(^|[^*])\\*([^*\\n]+)\\*/g,"$1<em>$2</em>");'
+        + 's=s.replace(/^###\\s+(.+)$/gm,"<h5 style=\\"font-weight:600;margin:.5rem 0 .25rem\\">$1</h5>");'
+        + 's=s.replace(/^##\\s+(.+)$/gm,"<h4 style=\\"font-weight:600;margin:.6rem 0 .3rem\\">$1</h4>");'
+        + 's=s.replace(/(^|\\n)((?:\\d+\\.\\s+.+(?:\\n|$))+)/g,function(m,p,list){var items=list.split("\\n").map(function(l){return l.replace(/^\\d+\\.\\s+/,"").trim();}).filter(function(x){return x;});return p+"<ol>"+items.map(function(i){return"<li>"+i+"</li>";}).join("")+"</ol>";});'
+        + 's=s.replace(/(^|\\n)(\\s*[-*]\\s+.+(?:\\n\\s*[-*]\\s+.+)*)/g,function(m,p,list){var items=list.split("\\n").map(function(l){return l.replace(/^\\s*[-*]\\s+/,"").trim();}).filter(function(x){return x;});return p+"<ul>"+items.map(function(i){return"<li>"+i+"</li>";}).join("")+"</ul>";});'
+        + 'return s.split(/\\n{2,}/).map(function(p){p=p.trim();if(!p||/^<(h[1-6]|ul|ol|pre|table|hr)/.test(p))return p;return"<p style=\\"margin:0 0 .4rem\\">"+p.replace(/\\n/g,"<br/>")+"</p>";}).join("");'
+        + '}'
+        + 'function msg(rolle,text){var c=document.getElementById("chat");var w=document.createElement("div");w.className=rolle==="user"?"msg-user":"msg-ast";var b=document.createElement("div");b.className="bubble";'
+        + 'if(rolle==="assistant"){b.innerHTML="<div class=\\"label\\">Dokumenten-Assistent</div>"+md(text);}else{b.textContent=text;}'
+        + 'w.appendChild(b);c.appendChild(w);c.scrollTop=c.scrollHeight;}'
+        + 'if(verlauf.length){verlauf.forEach(function(v){msg(v.rolle==="assistant"?"assistant":"user",v.text);});}else{msg("assistant","Stelle eine Frage zu den hochgeladenen Dokumenten. Ich durchsuche alle Inhalte und zeige dir die relevanten Stellen.");}'
+        + 'async function senden(){var inp=document.getElementById("inp");var frage=inp.value.trim();if(!frage||besetzt)return;besetzt=true;inp.value="";msg("user",frage);'
+        + 'var c=document.getElementById("chat");var t=document.createElement("div");t.className="msg-ast";t.innerHTML="<div class=\\"bubble\\"><div class=\\"spin\\"></div> Dokumente werden durchsucht\\u2026</div>";c.appendChild(t);c.scrollTop=c.scrollHeight;'
+        + 'try{var r=await fetch(parentOrigin+"/DokumentSucheApi/Fragen",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({frage:frage,verlauf:verlauf}),credentials:"include"});'
+        + 'var d=await r.json();t.remove();if(d.error){msg("assistant","**Fehler:** "+d.error);}else{var a=d.antwort||"(leer)";if(d.quellen&&d.quellen.length){a+="\\n\\n---\\n**Quellen:**\\n";d.quellen.forEach(function(q){a+="- "+q.dokument+", Seite "+q.seite+" ("+q.relevanz+"% Relevanz)\\n";});}'
+        + 'msg("assistant",a);verlauf.push({rolle:"user",text:frage});verlauf.push({rolle:"assistant",text:d.antwort||""});if(verlauf.length>8)verlauf=verlauf.slice(-8);}'
+        + '}catch(e){t.remove();msg("assistant","**Fehler:** Verbindung fehlgeschlagen.");}finally{besetzt=false;inp.focus();}}'
+        + '<\/script></body></html>');
+    w.document.close();
+    ragFensterSchliessen();
 }
 
 function ragSucheModus() {
