@@ -1009,8 +1009,14 @@ async function verkehrSuchen() {
         html += '<div style="text-align:center;color:var(--mc-text-muted);padding:.5rem;">Keine aktuellen Meldungen für diese Strecke.</div>';
     }
 
-    html += `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-top:.5rem;">
-        <button onclick="neueSuche('trafficFrom','trafficTo')" class="btn-mc btn-mc-primary" style="font-size:.82rem;"><i class="bi bi-arrow-clockwise"></i> Neue Suche</button>
+    var gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=driving`;
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;margin-top:.75rem;">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+            <button onclick="neueSuche('trafficFrom','trafficTo')" class="btn-mc btn-mc-primary" style="font-size:.82rem;"><i class="bi bi-arrow-clockwise"></i> Neue Suche</button>
+            <a href="${gmapsUrl}" target="_blank" rel="noopener" class="btn-mc btn-mc-gold" style="font-size:.82rem;text-decoration:none;display:inline-flex;align-items:center;gap:.35rem;">
+                <i class="bi bi-map"></i> In Google Maps &ouml;ffnen (Live-Verkehr)
+            </a>
+        </div>
         <span style="font-size:.7rem;color:var(--mc-text-muted);">Autobahnen: ${d.autobahnen?.join(', ') || '\u2014'} · Quelle: verkehr.autobahn.de</span>
     </div>`;
 

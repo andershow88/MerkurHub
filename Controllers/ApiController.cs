@@ -24,6 +24,35 @@ public class ApiController : Controller
     private int CurrentUserId =>
         int.TryParse(User.FindFirst("UserId")?.Value, out var uid) ? uid : 0;
 
+    private static readonly string[] DbApiHosts = {
+        "https://v6.db.transport.rest",
+        "https://v5.db.transport.rest"
+    };
+
+    private async Task<string?> FetchWithRetry(HttpClient client, string path, int maxRetries = 2)
+    {
+        foreach (var host in DbApiHosts)
+        {
+            for (var attempt = 0; attempt < maxRetries; attempt++)
+            {
+                try
+                {
+                    var resp = await client.GetAsync(host + path);
+                    if (resp.IsSuccessStatusCode)
+                        return await resp.Content.ReadAsStringAsync();
+                    _logger.LogWarning("DB API {Host}{Path} returned {Status} (attempt {A})", host, path, resp.StatusCode, attempt + 1);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "DB API {Host}{Path} failed (attempt {A})", host, path, attempt + 1);
+                    if (attempt < maxRetries - 1)
+                        await Task.Delay(800 * (attempt + 1));
+                }
+            }
+        }
+        return null;
+    }
+
     // ── Tiles CRUD ──────────────────────────────────────────────────────
 
     [HttpGet]
@@ -162,12 +191,13 @@ public class ApiController : Controller
             // Station-IDs: direkt nutzen wenn vorhanden, sonst parallel suchen
             if (string.IsNullOrEmpty(fromId) || string.IsNullOrEmpty(toId))
             {
-                var fromTask = client.GetStringAsync(
-                    $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(from)}&results=1");
-                var toTask = client.GetStringAsync(
-                    $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(to)}&results=1");
+                var fromTask = FetchWithRetry(client, $"/locations?query={Uri.EscapeDataString(from)}&results=1");
+                var toTask = FetchWithRetry(client, $"/locations?query={Uri.EscapeDataString(to)}&results=1");
 
                 await Task.WhenAll(fromTask, toTask);
+
+                if (fromTask.Result == null || toTask.Result == null)
+                    return Json(new { error = "Die Fahrplan-API ist momentan nicht erreichbar. Bitte versuchen Sie es in wenigen Minuten erneut." });
 
                 using var fromDoc = JsonDocument.Parse(fromTask.Result);
                 using var toDoc = JsonDocument.Parse(toTask.Result);
@@ -191,8 +221,10 @@ public class ApiController : Controller
             }
 
             var klasse = ersteKlasse ? "&firstClass=true" : "";
-            var journeyUrl = $"https://v6.db.transport.rest/journeys?from={fromId}&to={toId}{depParam}&results=6{klasse}";
-            var journeyResp = await client.GetStringAsync(journeyUrl);
+            var journeyPath = $"/journeys?from={fromId}&to={toId}{depParam}&results=6{klasse}";
+            var journeyResp = await FetchWithRetry(client, journeyPath);
+            if (journeyResp == null)
+                return Json(new { error = "Die Fahrplan-API ist momentan nicht erreichbar. Bitte versuchen Sie es in wenigen Minuten erneut." });
 
             using var jDoc = JsonDocument.Parse(journeyResp);
             var results = new List<object>();
@@ -296,13 +328,18 @@ public class ApiController : Controller
             var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(15);
 
-            var fromResp = await client.GetStringAsync(
-                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(from)}&results=1");
-            var toResp = await client.GetStringAsync(
-                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(to)}&results=1");
+            var fromTask = FetchWithRetry(client, $"/locations?query={Uri.EscapeDataString(from)}&results=1");
+            var toTask = FetchWithRetry(client, $"/locations?query={Uri.EscapeDataString(to)}&results=1");
+            await Task.WhenAll(fromTask, toTask);
 
-            using var fromDoc = JsonDocument.Parse(fromResp);
-            using var toDoc = JsonDocument.Parse(toResp);
+            if (fromTask.Result == null || toTask.Result == null)
+                return Json(new { error = "Die Fahrplan-API ist momentan nicht erreichbar. Bitte versuchen Sie es in wenigen Minuten erneut." });
+
+            using var fromDoc = JsonDocument.Parse(fromTask.Result);
+            using var toDoc = JsonDocument.Parse(toTask.Result);
+
+            if (fromDoc.RootElement.GetArrayLength() == 0 || toDoc.RootElement.GetArrayLength() == 0)
+                return Json(new { error = $"Haltestelle nicht gefunden: {(fromDoc.RootElement.GetArrayLength() == 0 ? from : to)}" });
 
             var fromId = fromDoc.RootElement[0].GetProperty("id").GetString();
             var toId = toDoc.RootElement[0].GetProperty("id").GetString();
@@ -314,15 +351,16 @@ public class ApiController : Controller
                 var d = berlinNow.Date;
                 var t = string.IsNullOrEmpty(time) ? berlinNow.TimeOfDay : TimeSpan.Parse(time);
                 var local = d + t;
-                // Wenn gewählte Zeit vor aktueller Zeit liegt → nächster Tag
                 if (local < berlinNow.AddMinutes(-5))
                     local = local.AddDays(1);
                 var dto = new DateTimeOffset(local, berlinTz.GetUtcOffset(local));
                 depParam = $"&departure={Uri.EscapeDataString(dto.ToString("O"))}";
             }
 
-            var url = $"https://v6.db.transport.rest/journeys?from={fromId}&to={toId}{depParam}&results=6&suburban=true&subway=true&tram=true&bus=true&regional=true&nationalExpress=false&national=false";
-            var journeyResp = await client.GetStringAsync(url);
+            var journeyPath = $"/journeys?from={fromId}&to={toId}{depParam}&results=6&suburban=true&subway=true&tram=true&bus=true&regional=true&nationalExpress=false&national=false";
+            var journeyResp = await FetchWithRetry(client, journeyPath);
+            if (journeyResp == null)
+                return Json(new { error = "Die Fahrplan-API ist momentan nicht erreichbar. Bitte versuchen Sie es in wenigen Minuten erneut." });
             using var jDoc = JsonDocument.Parse(journeyResp);
 
             var results = new List<object>();
@@ -565,8 +603,8 @@ public class ApiController : Controller
         {
             var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(8);
-            var resp = await client.GetStringAsync(
-                $"https://v6.db.transport.rest/locations?query={Uri.EscapeDataString(q)}&results=15&stops=true&addresses=false&poi=false");
+            var resp = await FetchWithRetry(client, $"/locations?query={Uri.EscapeDataString(q)}&results=15&stops=true&addresses=false&poi=false");
+            if (resp == null) return Json(Array.Empty<object>());
             using var doc = JsonDocument.Parse(resp);
             var results = new List<object>();
             foreach (var s in doc.RootElement.EnumerateArray())
