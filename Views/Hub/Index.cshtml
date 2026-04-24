@@ -295,31 +295,64 @@
 
 <!-- Tile Dialog -->
 <div class="mc-modal-overlay" id="tileModal">
-    <div class="mc-modal">
+    <div class="mc-modal" style="max-width:560px;">
         <div class="mc-modal-header">
-            <span id="tileModalTitle">Schnellzugriff hinzufügen</span>
+            <span id="tileModalTitle">Schnellzugriff hinzuf&uuml;gen</span>
             <button class="mc-modal-close" onclick="tileModalClose()">&times;</button>
         </div>
         <div class="mc-modal-body">
             <input type="hidden" id="tileEditId" />
+
+            <!-- Vorschau -->
+            <div style="text-align:center; margin-bottom:1.25rem;">
+                <div id="tilePreview" style="display:inline-flex; flex-direction:column; align-items:center; gap:.4rem;">
+                    <div id="tilePreviewIcon" style="width:56px; height:56px; border-radius:14px; background:#1a1a2e; display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.5rem; box-shadow:0 4px 12px rgba(0,0,0,.15); transition:all .3s;">
+                        <i class="bi bi-globe" id="tilePreviewI"></i>
+                    </div>
+                    <span id="tilePreviewName" style="font-size:.78rem; font-weight:600; color:var(--mc-text-dark);">Vorschau</span>
+                </div>
+            </div>
+
             <label class="mc-label">Titel</label>
-            <input class="mc-input" id="tileTitel" placeholder="z.B. Confluence" style="margin-bottom:.75rem;" />
+            <input class="mc-input" id="tileTitel" placeholder="z.B. Confluence" style="margin-bottom:.75rem;"
+                   oninput="document.getElementById('tilePreviewName').textContent=this.value||'Vorschau'" />
+
             <label class="mc-label">URL</label>
             <input class="mc-input" id="tileUrl" placeholder="https://..." style="margin-bottom:.75rem;" />
-            <label class="mc-label">Icon (Bootstrap Icon Name)</label>
-            <input class="mc-input" id="tileIcon" placeholder="z.B. bi-globe, bi-journal, bi-gear" style="margin-bottom:.75rem;" />
+
+            <!-- Icon-Picker -->
+            <label class="mc-label">Icon</label>
+            <div style="position:relative; margin-bottom:.75rem;">
+                <i class="bi bi-search" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--mc-text-muted); font-size:.85rem; pointer-events:none;"></i>
+                <input class="mc-input" id="tileIconSearch" placeholder="Icon suchen &hellip; z.B. globe, mail, chart"
+                       style="padding-left:2rem;" oninput="filterIcons(this.value)" onfocus="document.getElementById('iconPickerGrid').style.display='grid'" />
+                <input type="hidden" id="tileIcon" />
+            </div>
+            <div id="iconPickerGrid" style="display:none; grid-template-columns:repeat(auto-fill,minmax(42px,1fr)); gap:4px; max-height:200px; overflow-y:auto; margin-bottom:1rem; padding:.5rem; background:var(--mc-bg-alt,#f7f7f5); border-radius:var(--mc-radius-sm); border:1px solid var(--mc-border);">
+            </div>
+
+            <!-- Farb-Picker -->
             <label class="mc-label">Farbe</label>
-            <div style="display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:1rem;">
                 <button class="color-pick" data-c="#1a1a2e" style="background:#1a1a2e;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#00515A" style="background:#00515A;" onclick="pickColor(this)"></button>
                 <button class="color-pick" data-c="#c8a96e" style="background:#c8a96e;" onclick="pickColor(this)"></button>
                 <button class="color-pick" data-c="#28a745" style="background:#28a745;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#0078d4" style="background:#0078d4;" onclick="pickColor(this)"></button>
                 <button class="color-pick" data-c="#dc3545" style="background:#dc3545;" onclick="pickColor(this)"></button>
                 <button class="color-pick" data-c="#17a2b8" style="background:#17a2b8;" onclick="pickColor(this)"></button>
                 <button class="color-pick" data-c="#6f42c1" style="background:#6f42c1;" onclick="pickColor(this)"></button>
                 <button class="color-pick" data-c="#e6a817" style="background:#e6a817;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#e83e8c" style="background:#e83e8c;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#20c997" style="background:#20c997;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#fd7e14" style="background:#fd7e14;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#6610f2" style="background:#6610f2;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#343a40" style="background:#343a40;" onclick="pickColor(this)"></button>
                 <button class="color-pick" data-c="#6b6b6b" style="background:#6b6b6b;" onclick="pickColor(this)"></button>
+                <button class="color-pick" data-c="#038387" style="background:#038387;" onclick="pickColor(this)"></button>
             </div>
             <input type="hidden" id="tileFarbe" value="#1a1a2e" />
+
             <label style="display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem; font-size:.85rem; cursor:pointer;">
                 <input type="checkbox" id="tileAutoLogin" onchange="document.getElementById('autoLoginFelder').style.display=this.checked?'block':'none'" style="width:18px; height:18px; accent-color:var(--mc-petrol,#00515A);" />
                 <span><i class="bi bi-shield-lock" style="color:var(--mc-petrol);"></i> AutoLogin (Zugangsdaten pro User)</span>
@@ -334,7 +367,7 @@
             {
                 <label style="display:flex; align-items:center; gap:.5rem; margin-bottom:.75rem; font-size:.85rem; cursor:pointer;">
                     <input type="checkbox" id="tileGlobal" style="width:18px; height:18px; accent-color:var(--mc-petrol,#00515A);" />
-                    <span><i class="bi bi-globe2" style="color:var(--mc-petrol);"></i> Für alle sichtbar (global)</span>
+                    <span><i class="bi bi-globe2" style="color:var(--mc-petrol);"></i> F&uuml;r alle sichtbar (global)</span>
                 </label>
             }
             <button class="btn-mc btn-mc-gold" style="width:100%;" onclick="tileSpeichern()">Speichern</button>
@@ -363,8 +396,15 @@
 @@keyframes spinBtn{to{transform:rotate(360deg);}}
 .aktie-dragging{opacity:.4 !important;transform:scale(.95);}
 .aktie-drag-over{border-color:var(--mc-petrol) !important;box-shadow:0 0 0 2px var(--mc-petrol) !important;}
-.color-pick{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .2s;}
-.color-pick:hover,.color-pick.active{border-color:var(--mc-gold);transform:scale(1.15);}
+.color-pick{width:30px;height:30px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1);box-shadow:0 2px 6px rgba(0,0,0,.12);}
+.color-pick:hover{transform:scale(1.2);box-shadow:0 4px 12px rgba(0,0,0,.2);}
+.color-pick.active{border-color:var(--mc-gold);transform:scale(1.2);box-shadow:0 0 0 3px rgba(200,169,110,.3);}
+.icon-pick-btn{width:40px;height:40px;border:1.5px solid var(--mc-border);border-radius:8px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:var(--mc-text);transition:all .2s;}
+.icon-pick-btn:hover{border-color:var(--mc-petrol,#00515A);color:var(--mc-petrol,#00515A);background:rgba(0,81,90,.05);transform:scale(1.08);}
+.icon-pick-btn.active{border-color:var(--mc-petrol,#00515A);background:rgba(0,81,90,.1);color:var(--mc-petrol,#00515A);box-shadow:0 0 0 2px rgba(0,81,90,.15);}
+[data-theme="dark"] .icon-pick-btn{border-color:var(--mc-border);color:var(--mc-text);}
+[data-theme="dark"] .icon-pick-btn:hover,[data-theme="dark"] .icon-pick-btn.active{border-color:var(--mc-petrol);color:var(--mc-petrol);background:rgba(90,171,181,.1);}
+[data-theme="dark"] #iconPickerGrid{background:var(--mc-bg-card);border-color:var(--mc-border);}
 .ac-dropdown{position:fixed;z-index:99999;background:#fff;border:1px solid #ccc;border-radius:0 0 10px 10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);max-height:min(420px, 60vh);overflow-y:auto;display:none;}
 [data-theme="dark"] .ac-dropdown{background:#1e1e2e;border-color:#3a3a50;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
 .ac-dropdown.open{display:block;}
@@ -1071,6 +1111,82 @@ function pickColor(el) {
     el.classList.add('active');
     tilesFarbe = el.dataset.c;
     document.getElementById('tileFarbe').value = tilesFarbe;
+    document.getElementById('tilePreviewIcon').style.background = tilesFarbe;
+}
+
+// ═══ Icon Picker ═══════════════════════════════════════════════════════
+var iconList = [
+    'bi-globe','bi-globe2','bi-link-45deg','bi-box-arrow-up-right','bi-house','bi-house-door',
+    'bi-envelope','bi-envelope-fill','bi-chat-dots','bi-chat-left-text','bi-telephone','bi-phone',
+    'bi-people','bi-people-fill','bi-person','bi-person-fill','bi-person-badge','bi-person-workspace',
+    'bi-calendar','bi-calendar-event','bi-calendar-check','bi-clock','bi-alarm',
+    'bi-folder','bi-folder-fill','bi-folder2-open','bi-file-earmark','bi-file-text','bi-file-pdf','bi-file-excel','bi-file-word',
+    'bi-search','bi-zoom-in','bi-binoculars','bi-funnel',
+    'bi-gear','bi-gear-fill','bi-sliders','bi-tools','bi-wrench','bi-nut',
+    'bi-shield-check','bi-shield-lock','bi-lock','bi-unlock','bi-key','bi-fingerprint',
+    'bi-star','bi-star-fill','bi-heart','bi-heart-fill','bi-bookmark','bi-bookmark-fill','bi-flag','bi-flag-fill',
+    'bi-lightning','bi-lightning-fill','bi-lightning-charge','bi-rocket','bi-speedometer2',
+    'bi-graph-up','bi-graph-up-arrow','bi-bar-chart','bi-bar-chart-fill','bi-pie-chart','bi-pie-chart-fill',
+    'bi-calculator','bi-cash-stack','bi-currency-euro','bi-bank','bi-bank2','bi-credit-card','bi-wallet2',
+    'bi-building','bi-buildings','bi-shop','bi-briefcase','bi-briefcase-fill',
+    'bi-cloud','bi-cloud-fill','bi-cloud-upload','bi-cloud-download','bi-database','bi-server','bi-hdd-network',
+    'bi-laptop','bi-pc-display','bi-display','bi-printer','bi-webcam',
+    'bi-kanban','bi-kanban-fill','bi-list-check','bi-list-task','bi-check2-square','bi-clipboard-check',
+    'bi-journal','bi-journal-text','bi-book','bi-book-fill','bi-mortarboard',
+    'bi-megaphone','bi-bell','bi-bell-fill','bi-broadcast','bi-rss',
+    'bi-camera-video','bi-camera','bi-film','bi-music-note','bi-headset',
+    'bi-map','bi-geo-alt','bi-pin-map','bi-compass','bi-signpost',
+    'bi-truck','bi-car-front','bi-train-front','bi-airplane','bi-bicycle',
+    'bi-sun','bi-moon','bi-cloud-sun','bi-snow','bi-umbrella',
+    'bi-trophy','bi-award','bi-patch-check','bi-hand-thumbs-up','bi-emoji-smile',
+    'bi-puzzle','bi-diagram-3','bi-share','bi-send','bi-reply',
+    'bi-arrow-repeat','bi-arrow-clockwise','bi-arrow-right-circle','bi-box-arrow-right',
+    'bi-plus-circle','bi-dash-circle','bi-x-circle','bi-check-circle','bi-exclamation-triangle','bi-info-circle',
+    'bi-eye','bi-eye-fill','bi-image','bi-images','bi-palette',
+    'bi-code-slash','bi-terminal','bi-bug','bi-cpu','bi-motherboard',
+    'bi-wifi','bi-bluetooth','bi-usb-drive','bi-plug','bi-power',
+    'bi-newspaper','bi-card-text','bi-layout-text-sidebar','bi-window','bi-grid',
+    'bi-table','bi-receipt','bi-tags','bi-tag','bi-hash',
+    'bi-cup-hot','bi-gift','bi-balloon','bi-tree','bi-flower1'
+];
+var iconPickerBuilt = false;
+
+function buildIconPicker() {
+    if (iconPickerBuilt) return;
+    var grid = document.getElementById('iconPickerGrid');
+    iconList.forEach(function(ic) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'icon-pick-btn';
+        btn.dataset.icon = ic;
+        btn.title = ic.replace('bi-','');
+        btn.innerHTML = '<i class="bi '+ic+'"></i>';
+        btn.onclick = function() { selectIcon(ic); };
+        grid.appendChild(btn);
+    });
+    iconPickerBuilt = true;
+}
+
+function selectIcon(ic) {
+    document.getElementById('tileIcon').value = ic;
+    document.getElementById('tileIconSearch').value = ic.replace('bi-','');
+    document.getElementById('tilePreviewI').className = 'bi ' + ic;
+    document.querySelectorAll('.icon-pick-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.icon === ic); });
+}
+
+function filterIcons(q) {
+    var grid = document.getElementById('iconPickerGrid');
+    grid.style.display = 'grid';
+    buildIconPicker();
+    q = q.toLowerCase().replace('bi-','');
+    grid.querySelectorAll('.icon-pick-btn').forEach(function(btn) {
+        btn.style.display = btn.dataset.icon.toLowerCase().includes(q) ? '' : 'none';
+    });
+    var currentIcon = 'bi-' + q;
+    if (iconList.includes(currentIcon)) {
+        document.getElementById('tileIcon').value = currentIcon;
+        document.getElementById('tilePreviewI').className = 'bi ' + currentIcon;
+    }
 }
 
 async function loadTiles() {
@@ -1263,16 +1379,23 @@ function tileDialog(id, titel, url, icon, farbe, isGlobal, autoLogin, feldUser, 
     document.getElementById('tileTitel').value = titel || '';
     document.getElementById('tileUrl').value = url || '';
     document.getElementById('tileIcon').value = icon || '';
+    document.getElementById('tileIconSearch').value = (icon || '').replace('bi-','');
     tilesFarbe = farbe || '#1a1a2e';
     document.getElementById('tileFarbe').value = tilesFarbe;
     document.querySelectorAll('.color-pick').forEach(b => { b.classList.toggle('active', b.dataset.c === tilesFarbe); });
-    const globalEl = document.getElementById('tileGlobal');
+    document.getElementById('tilePreviewIcon').style.background = tilesFarbe;
+    document.getElementById('tilePreviewI').className = 'bi ' + (icon || 'bi-globe');
+    document.getElementById('tilePreviewName').textContent = titel || 'Vorschau';
+    buildIconPicker();
+    document.querySelectorAll('.icon-pick-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.icon === icon); });
+    document.getElementById('iconPickerGrid').style.display = 'none';
+    var globalEl = document.getElementById('tileGlobal');
     if (globalEl) globalEl.checked = !!isGlobal;
-    const alEl = document.getElementById('tileAutoLogin');
+    var alEl = document.getElementById('tileAutoLogin');
     if (alEl) { alEl.checked = !!autoLogin; document.getElementById('autoLoginFelder').style.display = autoLogin ? 'block' : 'none'; }
     document.getElementById('tileFeldUser').value = feldUser || '';
     document.getElementById('tileFeldPass').value = feldPass || '';
-    document.getElementById('tileModalTitle').textContent = id ? 'Schnellzugriff bearbeiten' : 'Schnellzugriff hinzufügen';
+    document.getElementById('tileModalTitle').textContent = id ? 'Schnellzugriff bearbeiten' : 'Schnellzugriff hinzuf\u00fcgen';
     document.getElementById('tileModal').classList.add('active');
 }
 function tileModalClose() { document.getElementById('tileModal').classList.remove('active'); }
