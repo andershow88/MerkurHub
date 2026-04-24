@@ -328,50 +328,41 @@ public class ApiController : Controller
             var client = _httpClientFactory.CreateClient();
             client.Timeout = TimeSpan.FromSeconds(15);
 
-            var fromTask = FetchWithRetry(client, $"/locations?query={Uri.EscapeDataString(from)}&results=1");
-            var toTask = FetchWithRetry(client, $"/locations?query={Uri.EscapeDataString(to)}&results=1");
-            await Task.WhenAll(fromTask, toTask);
+            // MVG offizielle API fuer Stationssuche
+            var fromResp = await client.GetStringAsync($"https://www.mvg.de/api/bgw-pt/v3/locations?query={Uri.EscapeDataString(from)}&limit=1");
+            var toResp = await client.GetStringAsync($"https://www.mvg.de/api/bgw-pt/v3/locations?query={Uri.EscapeDataString(to)}&limit=1");
 
-            if (fromTask.Result == null || toTask.Result == null)
-                return Json(new { error = "Die Fahrplan-API ist momentan nicht erreichbar. Bitte versuchen Sie es in wenigen Minuten erneut." });
-
-            using var fromDoc = JsonDocument.Parse(fromTask.Result);
-            using var toDoc = JsonDocument.Parse(toTask.Result);
+            using var fromDoc = JsonDocument.Parse(fromResp);
+            using var toDoc = JsonDocument.Parse(toResp);
 
             if (fromDoc.RootElement.GetArrayLength() == 0 || toDoc.RootElement.GetArrayLength() == 0)
                 return Json(new { error = $"Haltestelle nicht gefunden: {(fromDoc.RootElement.GetArrayLength() == 0 ? from : to)}" });
 
-            var fromId = fromDoc.RootElement[0].GetProperty("id").GetString();
-            var toId = toDoc.RootElement[0].GetProperty("id").GetString();
+            var fromGlobalId = fromDoc.RootElement[0].GetProperty("globalId").GetString();
+            var toGlobalId = toDoc.RootElement[0].GetProperty("globalId").GetString();
 
-            var depParam = "";
-            {
-                var berlinTz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
-                var berlinNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, berlinTz);
-                var d = berlinNow.Date;
-                var t = string.IsNullOrEmpty(time) ? berlinNow.TimeOfDay : TimeSpan.Parse(time);
-                var local = d + t;
-                if (local < berlinNow.AddMinutes(-5))
-                    local = local.AddDays(1);
-                var dto = new DateTimeOffset(local, berlinTz.GetUtcOffset(local));
-                depParam = $"&departure={Uri.EscapeDataString(dto.ToString("O"))}";
-            }
+            var berlinTz = TimeZoneInfo.FindSystemTimeZoneById("Europe/Berlin");
+            var berlinNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, berlinTz);
+            var d = berlinNow.Date;
+            var t = string.IsNullOrEmpty(time) ? berlinNow.TimeOfDay : TimeSpan.Parse(time);
+            var local = d + t;
+            if (local < berlinNow.AddMinutes(-5))
+                local = local.AddDays(1);
+            var routingDt = new DateTimeOffset(local, berlinTz.GetUtcOffset(local)).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ");
 
-            var journeyPath = $"/journeys?from={fromId}&to={toId}{depParam}&results=6&suburban=true&subway=true&tram=true&bus=true&regional=true&nationalExpress=false&national=false";
-            var journeyResp = await FetchWithRetry(client, journeyPath);
-            if (journeyResp == null)
-                return Json(new { error = "Die Fahrplan-API ist momentan nicht erreichbar. Bitte versuchen Sie es in wenigen Minuten erneut." });
-            using var jDoc = JsonDocument.Parse(journeyResp);
+            var routeUrl = $"https://www.mvg.de/api/bgw-pt/v3/routes?originStationGlobalId={fromGlobalId}&destinationStationGlobalId={toGlobalId}&routingDateTime={routingDt}&transportTypeUnion=SCHIENENPERSONENNAHVERKEHR,UBAHN,TRAM,BUS,SBAHN";
+            var routeResp = await client.GetStringAsync(routeUrl);
+            using var jDoc = JsonDocument.Parse(routeResp);
 
             var results = new List<object>();
-            foreach (var journey in jDoc.RootElement.GetProperty("journeys").EnumerateArray().Take(6))
+            foreach (var route in jDoc.RootElement.EnumerateArray().Take(6))
             {
-                var legs = journey.GetProperty("legs");
-                var firstLeg = legs[0];
-                var lastLeg = legs[legs.GetArrayLength() - 1];
+                var parts = route.GetProperty("parts");
+                var firstPart = parts[0];
+                var lastPart = parts[parts.GetArrayLength() - 1];
 
-                var depStr = firstLeg.GetProperty("departure").GetString() ?? "";
-                var arrStr = lastLeg.GetProperty("arrival").GetString() ?? "";
+                var depStr = firstPart.GetProperty("from").GetProperty("plannedDeparture").GetString() ?? "";
+                var arrStr = lastPart.GetProperty("to").GetProperty("plannedDeparture").GetString() ?? "";
                 var abfahrt = depStr.Length >= 16 ? depStr.Substring(11, 5) : "??:??";
                 var ankunft = arrStr.Length >= 16 ? arrStr.Substring(11, 5) : "??:??";
 
@@ -382,25 +373,25 @@ public class ApiController : Controller
 
                 var linien = new List<string>();
                 var typ = "OEPNV";
-                foreach (var leg in legs.EnumerateArray())
+                foreach (var part in parts.EnumerateArray())
                 {
-                    if (leg.TryGetProperty("line", out var line))
+                    var label = part.TryGetProperty("label", out var lb) ? lb.GetString() : null;
+                    if (!string.IsNullOrEmpty(label)) linien.Add(label);
+                    var tTypes = part.TryGetProperty("transportTypes", out var tt) ? tt : default;
+                    if (tTypes.ValueKind == JsonValueKind.Array)
                     {
-                        var name = line.TryGetProperty("name", out var n) ? n.GetString() : null;
-                        var product = line.TryGetProperty("product", out var p) ? p.GetString() : null;
-                        if (!string.IsNullOrEmpty(name)) linien.Add(name);
-                        if (product != null) typ = product switch
+                        foreach (var tp in tTypes.EnumerateArray())
                         {
-                            "suburban" or "suburbanExpress" => "S-Bahn",
-                            "subway" => "U-Bahn",
-                            "tram" => "Tram",
-                            "bus" => "Bus",
-                            _ => typ
-                        };
+                            var tpStr = tp.GetString();
+                            if (tpStr == "SBAHN") typ = "S-Bahn";
+                            else if (tpStr == "UBAHN") typ = "U-Bahn";
+                            else if (tpStr == "TRAM") typ = "Tram";
+                            else if (tpStr == "BUS") typ = "Bus";
+                        }
                     }
                 }
 
-                var richtung = lastLeg.TryGetProperty("destination", out var dest) && dest.TryGetProperty("name", out var dn) ? dn.GetString() : to;
+                var richtung = lastPart.GetProperty("to").TryGetProperty("name", out var dn) ? dn.GetString() : to;
 
                 results.Add(new { abfahrt, linie = string.Join(" + ", linien), richtung, dauer = dauerStr, typ, ankunft });
             }

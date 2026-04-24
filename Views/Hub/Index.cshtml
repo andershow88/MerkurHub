@@ -913,8 +913,17 @@ async function bahnSuchen() {
     const tId = acStationIds['bahnTo'] || '';
     const r = await fetch(`/api/BahnSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${date}&time=${time}&ersteKlasse=${ersteKlasse}&fromId=${encodeURIComponent(fId)}&toId=${encodeURIComponent(tId)}`);
     const data = await r.json();
-    if (data.error) { showResult('Deutsche Bahn', `<div style="text-align:center;padding:1.5rem;color:var(--mc-danger);"><i class="bi bi-exclamation-triangle" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>${data.error}</div>`); return; }
-    if (!Array.isArray(data) || !data.length) { showResult('Deutsche Bahn', '<div style="text-align:center;padding:1.5rem;color:var(--mc-text-muted);">Keine Verbindungen gefunden.</div>'); return; }
+    var bahnDeUrl = `https://reiseauskunft.bahn.de/bin/query.exe/dn?S=${encodeURIComponent(from)}&Z=${encodeURIComponent(to)}&date=${date.split('-').reverse().join('.')}&time=${time}&start=1`;
+    if (data.error || !Array.isArray(data) || !data.length) {
+        showResult('Deutsche Bahn', `<div style="text-align:center;padding:1.5rem;">
+            <i class="bi bi-exclamation-triangle" style="font-size:2rem;display:block;margin-bottom:.5rem;color:var(--mc-warning);"></i>
+            <div style="color:var(--mc-text);margin-bottom:1rem;">${data.error || 'Keine Verbindungen gefunden.'}</div>
+            <a href="${bahnDeUrl}" target="_blank" rel="noopener" class="btn-mc btn-mc-gold" style="text-decoration:none;display:inline-flex;align-items:center;gap:.4rem;">
+                <i class="bi bi-train-front"></i> Direkt auf bahn.de suchen
+            </a>
+            <div style="margin-top:.75rem;"><button onclick="neueSuche('bahnFrom','bahnTo')" class="btn-mc btn-mc-primary" style="font-size:.82rem;"><i class="bi bi-arrow-clockwise"></i> Erneut versuchen</button></div>
+        </div>`); return;
+    }
     let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-train-front"></i> ${from} → ${to} · ${date}</div>`;
     html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;">';
     html += '<thead><tr style="border-bottom:2px solid var(--mc-border);text-align:left;"><th style="padding:.5rem;">Abfahrt</th><th>Ankunft</th><th>Dauer</th><th>Umst.</th><th>Züge</th><th>Status</th><th>Preis</th></tr></thead><tbody>';
@@ -954,8 +963,17 @@ async function mvgSuchen() {
     showResult('MVG München — Verbindungen', loadingHtml('Verbindungen werden gesucht'));
     const r = await fetch(`/api/MvgSearch?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&time=${time}`);
     const data = await r.json();
-    if (data.error) { showResult('MVG München', `<div style="text-align:center;padding:1.5rem;color:var(--mc-danger);"><i class="bi bi-exclamation-triangle" style="font-size:2rem;display:block;margin-bottom:.5rem;"></i>${data.error}</div>`); return; }
-    if (!Array.isArray(data) || !data.length) { showResult('MVG München', '<div style="text-align:center;padding:1.5rem;color:var(--mc-text-muted);">Keine Verbindungen gefunden.</div>'); return; }
+    var mvgDeUrl = `https://www.mvg.de/verbindungen.html?origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}`;
+    if (data.error || !Array.isArray(data) || !data.length) {
+        showResult('MVG M\u00fcnchen', `<div style="text-align:center;padding:1.5rem;">
+            <i class="bi bi-exclamation-triangle" style="font-size:2rem;display:block;margin-bottom:.5rem;color:var(--mc-warning);"></i>
+            <div style="color:var(--mc-text);margin-bottom:1rem;">${data.error || 'Keine Verbindungen gefunden.'}</div>
+            <a href="${mvgDeUrl}" target="_blank" rel="noopener" class="btn-mc btn-mc-gold" style="text-decoration:none;display:inline-flex;align-items:center;gap:.4rem;">
+                <i class="bi bi-bus-front"></i> Direkt auf mvg.de suchen
+            </a>
+            <div style="margin-top:.75rem;"><button onclick="neueSuche('mvgFrom','mvgTo')" class="btn-mc btn-mc-primary" style="font-size:.82rem;"><i class="bi bi-arrow-clockwise"></i> Erneut versuchen</button></div>
+        </div>`); return;
+    }
     let html = `<div style="margin-bottom:.75rem;font-size:.9rem;color:var(--mc-text-muted);"><i class="bi bi-bus-front"></i> ${from} → ${to}</div>`;
     html += '<table style="width:100%;border-collapse:collapse;font-size:.875rem;">';
     html += '<thead><tr style="border-bottom:2px solid var(--mc-border);text-align:left;"><th style="padding:.5rem;">Abfahrt</th><th>Ankunft</th><th>Linie</th><th>Richtung</th><th>Dauer</th><th>Typ</th></tr></thead><tbody>';
