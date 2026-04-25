@@ -1,6 +1,131 @@
 @model List<MerkurHub.Models.Tile>
 @{ ViewData["Title"] = "Hub"; }
 
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MITTLERER BEREICH: Konfigurierbare Kacheln
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="mc-section">
+    <div class="mc-section-title mc-collapsible" onclick="toggleSection(this)">
+        <i class="bi bi-bookmark-star"></i> Meine Schnellzugriffe
+        <i class="bi bi-chevron-down mc-chevron" style="transform:rotate(180deg);"></i>
+    </div>
+    <div class="mc-section-body" style="display:block;">
+
+    <div class="mc-tiles-grid" id="tilesGrid">
+        <!-- Tiles werden per JS geladen -->
+        <div class="mc-tile mc-tile-add" onclick="tileDialog()">
+            <div class="mc-tile-icon" style="background:transparent; border:2px dashed var(--mc-border); color:var(--mc-text-muted);">
+                <i class="bi bi-plus-lg"></i>
+            </div>
+            <div class="mc-tile-title" style="color:var(--mc-text-muted);">Hinzufügen</div>
+        </div>
+    </div>
+
+    </div><!-- /mc-section-body -->
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     UNTERER BEREICH: Dashboard mit Kennzahlen
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="mc-section">
+    <div class="mc-section-title mc-collapsible" onclick="toggleSection(this)">
+        <i class="bi bi-graph-up-arrow"></i> Dashboard &amp; Kennzahlen
+        <i class="bi bi-chevron-down mc-chevron"></i>
+    </div>
+    <div class="mc-section-body" style="display:none;">
+
+    <!-- KPI Karten -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr)); gap:1rem; margin-bottom:1.5rem;">
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Kernkapital</div>
+            <div class="mc-kpi-value" style="font-size:1.35rem;" data-animate-kpi data-value="292052494.75" data-suffix=" €">0</div>
+            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> per letzter Werktag</div>
+            <i class="bi bi-bank mc-kpi-icon"></i>
+        </div>
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Großkreditobergrenze (25%)</div>
+            <div class="mc-kpi-value" style="font-size:1.35rem;" data-animate-kpi data-value="73013123" data-suffix=" €">0</div>
+            <div class="mc-kpi-trend">25 % des Kernkapitals</div>
+            <i class="bi bi-shield-check mc-kpi-icon"></i>
+        </div>
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Großkreditgrenze (10%)</div>
+            <div class="mc-kpi-value" style="font-size:1.35rem;" data-animate-kpi data-value="29205249.48" data-suffix=" €">0</div>
+            <div class="mc-kpi-trend">10 % des Kernkapitals</div>
+            <i class="bi bi-exclamation-triangle mc-kpi-icon"></i>
+        </div>
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Assets under Management</div>
+            <div class="mc-kpi-value" data-animate-kpi data-value="1.84" data-suffix=" Mrd. €">0</div>
+            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> +3,2 % YTD</div>
+            <i class="bi bi-pie-chart mc-kpi-icon"></i>
+        </div>
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Leasing-Volumen</div>
+            <div class="mc-kpi-value" data-animate-kpi data-value="148.3" data-suffix=" Mio. €">0</div>
+            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> +12 Anträge MTD</div>
+            <i class="bi bi-file-earmark-text mc-kpi-icon"></i>
+        </div>
+        <div class="mc-kpi-card">
+            <div class="mc-kpi-label">Neukunden Q1</div>
+            <div class="mc-kpi-value" data-animate-kpi data-value="127">0</div>
+            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> +18 % ggü. Vorjahr</div>
+            <i class="bi bi-people mc-kpi-icon"></i>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="mc-dashboard-grid">
+        <div class="mc-chart-card">
+            <div class="mc-chart-title"><i class="bi bi-building" style="color:var(--mc-gold);"></i> Bauträgerbereich</div>
+            <canvas id="chartBautraeger" height="220"></canvas>
+        </div>
+        <div class="mc-chart-card">
+            <div class="mc-chart-title"><i class="bi bi-file-earmark-bar-graph" style="color:var(--mc-gold);"></i> Leasing — Anträge &amp; Volumen</div>
+            <canvas id="chartLeasing" height="220"></canvas>
+        </div>
+        <div class="mc-chart-card">
+            <div class="mc-chart-title"><i class="bi bi-clipboard-data" style="color:var(--mc-gold);"></i> Kreditmeldewesen — Obligo-Verteilung</div>
+            <canvas id="chartKredit" height="220"></canvas>
+        </div>
+        <div class="mc-chart-card">
+            <div class="mc-chart-title"><i class="bi bi-person-plus" style="color:var(--mc-gold);"></i> Neukunden-Onboarding &amp; VV</div>
+            <canvas id="chartOnboarding" height="220"></canvas>
+        </div>
+    </div>
+
+    </div><!-- /mc-section-body -->
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     AKTIEN & MÄRKTE
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="mc-section">
+    <div class="mc-section-title mc-collapsible" onclick="toggleSection(this)">
+        <i class="bi bi-graph-up"></i> Aktien &amp; Märkte
+        <i class="bi bi-chevron-down mc-chevron"></i>
+    </div>
+    <div class="mc-section-body" style="display:none;">
+
+    <div id="aktienGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1rem;">
+        <!-- Wird per JS befüllt -->
+    </div>
+
+    <div style="margin-top:1rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+        <div style="position:relative; max-width:340px; flex:1;">
+            <input type="text" class="mc-input" id="aktieSymbol" placeholder="Aktie suchen (z.B. Siemens, Apple, Bitcoin)" autocomplete="off"
+                   oninput="aktienAutocomplete()" onkeydown="if(event.key==='Enter'){event.preventDefault();aktieHinzufuegen();}" />
+            <div class="ac-dropdown" id="aktienAc" style="max-height:min(500px,70vh) !important;"></div>
+        </div>
+        <button class="btn-mc btn-mc-primary" onclick="aktieHinzufuegen()"><i class="bi bi-plus-lg"></i> Hinzufügen</button>
+        <button class="btn-mc btn-mc-outline" onclick="loadAktien()" title="Alle aktualisieren"><i class="bi bi-arrow-clockwise"></i> Alle aktualisieren</button>
+        <span style="font-size:.72rem; color:var(--mc-text-muted); margin-left:.5rem;">Yahoo Finance · 15 Min Verzögerung</span>
+    </div>
+
+    </div><!-- /mc-section-body -->
+</section>
+
 <!-- ═══════════════════════════════════════════════════════════════════════════
      OBERER BEREICH: Wetter + Mobilität
      ═══════════════════════════════════════════════════════════════════════ -->
@@ -163,130 +288,6 @@
             </div>
             <div class="weather-forecast" id="weatherForecast"></div>
         </div>
-    </div>
-
-    </div><!-- /mc-section-body -->
-</section>
-
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     MITTLERER BEREICH: Konfigurierbare Kacheln
-     ═══════════════════════════════════════════════════════════════════════ -->
-<section class="mc-section">
-    <div class="mc-section-title mc-collapsible" onclick="toggleSection(this)">
-        <i class="bi bi-bookmark-star"></i> Meine Schnellzugriffe
-        <i class="bi bi-chevron-down mc-chevron"></i>
-    </div>
-    <div class="mc-section-body" style="display:none;">
-
-    <div class="mc-tiles-grid" id="tilesGrid">
-        <!-- Tiles werden per JS geladen -->
-        <div class="mc-tile mc-tile-add" onclick="tileDialog()">
-            <div class="mc-tile-icon" style="background:transparent; border:2px dashed var(--mc-border); color:var(--mc-text-muted);">
-                <i class="bi bi-plus-lg"></i>
-            </div>
-            <div class="mc-tile-title" style="color:var(--mc-text-muted);">Hinzufügen</div>
-        </div>
-    </div>
-
-    </div><!-- /mc-section-body -->
-</section>
-
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     UNTERER BEREICH: Dashboard mit Kennzahlen
-     ═══════════════════════════════════════════════════════════════════════ -->
-<section class="mc-section">
-    <div class="mc-section-title mc-collapsible" onclick="toggleSection(this)">
-        <i class="bi bi-graph-up-arrow"></i> Dashboard &amp; Kennzahlen
-        <i class="bi bi-chevron-down mc-chevron"></i>
-    </div>
-    <div class="mc-section-body" style="display:none;">
-
-    <!-- KPI Karten -->
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr)); gap:1rem; margin-bottom:1.5rem;">
-        <div class="mc-kpi-card">
-            <div class="mc-kpi-label">Kernkapital</div>
-            <div class="mc-kpi-value" style="font-size:1.35rem;" data-animate-kpi data-value="292052494.75" data-suffix=" €">0</div>
-            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> per letzter Werktag</div>
-            <i class="bi bi-bank mc-kpi-icon"></i>
-        </div>
-        <div class="mc-kpi-card">
-            <div class="mc-kpi-label">Großkreditobergrenze (25%)</div>
-            <div class="mc-kpi-value" style="font-size:1.35rem;" data-animate-kpi data-value="73013123" data-suffix=" €">0</div>
-            <div class="mc-kpi-trend">25 % des Kernkapitals</div>
-            <i class="bi bi-shield-check mc-kpi-icon"></i>
-        </div>
-        <div class="mc-kpi-card">
-            <div class="mc-kpi-label">Großkreditgrenze (10%)</div>
-            <div class="mc-kpi-value" style="font-size:1.35rem;" data-animate-kpi data-value="29205249.48" data-suffix=" €">0</div>
-            <div class="mc-kpi-trend">10 % des Kernkapitals</div>
-            <i class="bi bi-exclamation-triangle mc-kpi-icon"></i>
-        </div>
-        <div class="mc-kpi-card">
-            <div class="mc-kpi-label">Assets under Management</div>
-            <div class="mc-kpi-value" data-animate-kpi data-value="1.84" data-suffix=" Mrd. €">0</div>
-            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> +3,2 % YTD</div>
-            <i class="bi bi-pie-chart mc-kpi-icon"></i>
-        </div>
-        <div class="mc-kpi-card">
-            <div class="mc-kpi-label">Leasing-Volumen</div>
-            <div class="mc-kpi-value" data-animate-kpi data-value="148.3" data-suffix=" Mio. €">0</div>
-            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> +12 Anträge MTD</div>
-            <i class="bi bi-file-earmark-text mc-kpi-icon"></i>
-        </div>
-        <div class="mc-kpi-card">
-            <div class="mc-kpi-label">Neukunden Q1</div>
-            <div class="mc-kpi-value" data-animate-kpi data-value="127">0</div>
-            <div class="mc-kpi-trend up"><i class="bi bi-arrow-up-short"></i> +18 % ggü. Vorjahr</div>
-            <i class="bi bi-people mc-kpi-icon"></i>
-        </div>
-    </div>
-
-    <!-- Charts -->
-    <div class="mc-dashboard-grid">
-        <div class="mc-chart-card">
-            <div class="mc-chart-title"><i class="bi bi-building" style="color:var(--mc-gold);"></i> Bauträgerbereich</div>
-            <canvas id="chartBautraeger" height="220"></canvas>
-        </div>
-        <div class="mc-chart-card">
-            <div class="mc-chart-title"><i class="bi bi-file-earmark-bar-graph" style="color:var(--mc-gold);"></i> Leasing — Anträge &amp; Volumen</div>
-            <canvas id="chartLeasing" height="220"></canvas>
-        </div>
-        <div class="mc-chart-card">
-            <div class="mc-chart-title"><i class="bi bi-clipboard-data" style="color:var(--mc-gold);"></i> Kreditmeldewesen — Obligo-Verteilung</div>
-            <canvas id="chartKredit" height="220"></canvas>
-        </div>
-        <div class="mc-chart-card">
-            <div class="mc-chart-title"><i class="bi bi-person-plus" style="color:var(--mc-gold);"></i> Neukunden-Onboarding &amp; VV</div>
-            <canvas id="chartOnboarding" height="220"></canvas>
-        </div>
-    </div>
-
-    </div><!-- /mc-section-body -->
-</section>
-
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     AKTIEN & MÄRKTE
-     ═══════════════════════════════════════════════════════════════════════ -->
-<section class="mc-section">
-    <div class="mc-section-title mc-collapsible" onclick="toggleSection(this)">
-        <i class="bi bi-graph-up"></i> Aktien &amp; Märkte
-        <i class="bi bi-chevron-down mc-chevron"></i>
-    </div>
-    <div class="mc-section-body" style="display:none;">
-
-    <div id="aktienGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1rem;">
-        <!-- Wird per JS befüllt -->
-    </div>
-
-    <div style="margin-top:1rem; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
-        <div style="position:relative; max-width:340px; flex:1;">
-            <input type="text" class="mc-input" id="aktieSymbol" placeholder="Aktie suchen (z.B. Siemens, Apple, Bitcoin)" autocomplete="off"
-                   oninput="aktienAutocomplete()" onkeydown="if(event.key==='Enter'){event.preventDefault();aktieHinzufuegen();}" />
-            <div class="ac-dropdown" id="aktienAc" style="max-height:min(500px,70vh) !important;"></div>
-        </div>
-        <button class="btn-mc btn-mc-primary" onclick="aktieHinzufuegen()"><i class="bi bi-plus-lg"></i> Hinzufügen</button>
-        <button class="btn-mc btn-mc-outline" onclick="loadAktien()" title="Alle aktualisieren"><i class="bi bi-arrow-clockwise"></i> Alle aktualisieren</button>
-        <span style="font-size:.72rem; color:var(--mc-text-muted); margin-left:.5rem;">Yahoo Finance · 15 Min Verzögerung</span>
     </div>
 
     </div><!-- /mc-section-body -->
