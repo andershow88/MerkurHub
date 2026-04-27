@@ -715,6 +715,60 @@ public class ApiController : Controller
         public string Passwort { get; set; } = string.Empty;
     }
 
+    // ── MerkurLogin: lokale Selenium-App per dotnet run starten ───────────────
+    public class MerkurLoginStartDto
+    {
+        public string Pfad { get; set; } = string.Empty;
+    }
+
+    [HttpPost]
+    public IActionResult MerkurLoginStarten([FromBody] MerkurLoginStartDto dto)
+    {
+        var pfad = dto?.Pfad?.Trim();
+        if (string.IsNullOrWhiteSpace(pfad))
+            return BadRequest(new { error = "Kein Pfad angegeben." });
+
+        // Erweitern: ~ und Anführungszeichen entfernen
+        if (pfad.StartsWith("~"))
+            pfad = pfad.Replace("~", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        pfad = pfad.Trim('"', '\'');
+
+        if (!System.IO.Directory.Exists(pfad))
+            return BadRequest(new { error = $"Pfad existiert nicht: {pfad}" });
+
+        var csprojFiles = System.IO.Directory.GetFiles(pfad, "*.csproj");
+        if (csprojFiles.Length == 0)
+            return BadRequest(new { error = "Kein .csproj-File im Ordner — bitte den Wurzelordner der MerkurLogin-App angeben." });
+
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = "run",
+                WorkingDirectory = pfad,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            var p = System.Diagnostics.Process.Start(psi);
+            if (p == null) return StatusCode(500, new { error = "Prozess konnte nicht gestartet werden." });
+
+            // Stdout/Stderr asynchron ablesen, damit der Buffer nicht volläuft
+            _ = Task.Run(async () => { try { await p.StandardOutput.ReadToEndAsync(); } catch { } });
+            _ = Task.Run(async () => { try { await p.StandardError.ReadToEndAsync(); } catch { } });
+
+            _logger.LogInformation("MerkurLogin gestartet: pid {Pid} aus {Pfad}", p.Id, pfad);
+            return Ok(new { ok = true, pid = p.Id, pfad });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Starten von MerkurLogin via {Pfad}", pfad);
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     // ── DTOs ────────────────────────────────────────────────────────────
 
     public class TileCreateDto

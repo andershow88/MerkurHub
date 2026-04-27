@@ -8,6 +8,11 @@
 <section class="mc-section">
     <div class="mc-section-title mc-collapsible open" onclick="toggleSection(this)">
         <i class="bi bi-bookmark-star"></i> Meine Schnellzugriffe
+        <button type="button" onclick="event.stopPropagation(); merkurLoginConfig();"
+                title="MerkurLogin-Pfad einstellen (lokale AutoLogin-App)"
+                style="margin-left:.75rem; background:none; border:1px solid var(--mc-border); border-radius:var(--mc-radius-sm); color:var(--mc-text-muted); padding:.2rem .55rem; cursor:pointer; font-size:.78rem;">
+            <i class="bi bi-gear"></i> AutoLogin-Pfad
+        </button>
         <i class="bi bi-chevron-down mc-chevron"></i>
     </div>
     <div class="mc-section-body open" style="max-height:none;">
@@ -1301,6 +1306,23 @@ async function loadTiles() {
 function esc(s) { return s ? s.replace(/'/g, "\\'").replace(/"/g, '&quot;') : ''; }
 
 // ═══ AutoLogin ═══════════════════════════════════════════════════════════════
+async function pingMerkurLogin() {
+    try {
+        const r = await fetch('http://localhost:17580/ping', { signal: AbortSignal.timeout(1500) });
+        const d = await r.json();
+        return d.status === 'ok';
+    } catch { return false; }
+}
+
+async function waitForMerkurLogin(timeoutMs) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        if (await pingMerkurLogin()) return true;
+        await new Promise(r => setTimeout(r, 1000));
+    }
+    return false;
+}
+
 async function autoLoginKlick(tileId, url) {
     // Credentials laden
     const r = await fetch('/api/GetCredential?tileId=' + tileId);
@@ -1318,26 +1340,95 @@ async function autoLoginKlick(tileId, url) {
     const feldUser = tile?.feldUsername || 'ctl00_cphContent_txtUsername_I';
     const feldPass = tile?.feldPasswort || 'ctl00_cphContent_txtPassword_I';
 
-    // Versuche lokale MerkurLogin-App (Selenium Auto-Fill)
-    try {
-        const ping = await fetch('http://localhost:17580/ping', { signal: AbortSignal.timeout(1500) });
-        const pingData = await ping.json();
-        if (pingData.status === 'ok') {
-            // Lokale App läuft → AutoLogin starten
-            autoLoginPopupStatus('Edge wird geöffnet und Login ausgefüllt...');
+    // Schritt 1: läuft die lokale App?
+    let pingOk = await pingMerkurLogin();
+
+    // Schritt 2: wenn nicht und Pfad konfiguriert → automatisch starten
+    if (!pingOk) {
+        const pfad = (localStorage.getItem('merkurLoginPfad') || '').trim();
+        if (pfad) {
+            autoLoginPopupStatus('<i class="bi bi-arrow-clockwise"></i> Starte MerkurLogin lokal …');
+            try {
+                const startResp = await fetch('/api/MerkurLoginStarten', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pfad })
+                });
+                if (startResp.ok) {
+                    autoLoginPopupStatus('<i class="bi bi-arrow-clockwise"></i> MerkurLogin startet, bitte einen Moment …');
+                    pingOk = await waitForMerkurLogin(20000);
+                    if (!pingOk) autoLoginPopupStatus('<i class="bi bi-exclamation-triangle"></i> MerkurLogin nicht erreichbar — bitte Pfad prüfen', 5000);
+                } else {
+                    const err = await startResp.json().catch(() => ({}));
+                    autoLoginPopupStatus('<i class="bi bi-exclamation-triangle" style="color:var(--mc-danger);"></i> ' + (err.error || 'Start fehlgeschlagen') + '<br><button onclick="merkurLoginConfig()" class="btn-mc btn-mc-outline" style="margin-top:.5rem;font-size:.75rem;"><i class="bi bi-gear"></i> Pfad prüfen</button>', 0);
+                }
+            } catch (e) {
+                autoLoginPopupStatus('<i class="bi bi-exclamation-triangle"></i> Konnte MerkurLogin nicht starten: ' + e.message, 5000);
+            }
+        }
+    }
+
+    // Schritt 3: AutoLogin via Selenium-App
+    if (pingOk) {
+        try {
+            autoLoginPopupStatus('<i class="bi bi-arrow-clockwise"></i> Edge wird geöffnet und Login ausgefüllt …');
             const loginResp = await fetch(`http://localhost:17580/autologin?url=${encodeURIComponent(url)}&user=${encodeURIComponent(cred.username)}&pass=${encodeURIComponent(cred.passwort)}&feldUser=${encodeURIComponent(feldUser)}&feldPass=${encodeURIComponent(feldPass)}`);
             const loginData = await loginResp.json();
             if (loginData.status === 'ok') {
                 autoLoginPopupStatus('<i class="bi bi-check-circle-fill" style="color:var(--mc-success);"></i> Login automatisch ausgefüllt — Edge ist geöffnet', 5000);
                 return;
             }
-        }
-    } catch {}
+        } catch {}
+    }
 
-    // Fallback: Zwischenablage + manuell
+    // Fallback: Zwischenablage + manuell + Pfad-Hinweis
     await navigator.clipboard.writeText(cred.username);
     window.open(url, '_blank');
     autoLoginPopupZeigen(cred.username, cred.passwort, tileId);
+}
+
+// ═══ MerkurLogin-Pfad konfigurieren (lokal in localStorage) ═══════════════════
+function merkurLoginConfig() {
+    const current = localStorage.getItem('merkurLoginPfad') || '';
+    document.getElementById('alPopup')?.remove();
+    const popup = document.createElement('div');
+    popup.id = 'alPopup';
+    popup.style.cssText = 'position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); z-index:9999; background:var(--mc-bg-card,#fff); border:1px solid var(--mc-border); border-radius:var(--mc-radius); box-shadow:0 8px 32px rgba(0,0,0,.15); padding:1.25rem 1.5rem; max-width:520px; width:92%; animation:alSlideUp .3s ease-out;';
+    popup.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem;">
+            <div style="font-weight:600; color:var(--mc-text-dark);"><i class="bi bi-gear" style="color:var(--mc-petrol);"></i> MerkurLogin-Pfad</div>
+            <button onclick="document.getElementById('alPopup').remove()" style="background:none; border:none; cursor:pointer; color:var(--mc-text-muted); font-size:1rem;"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div style="font-size:.82rem; color:var(--mc-text-muted); line-height:1.5; margin-bottom:.85rem;">
+            Lokaler Wurzelordner der <strong>MerkurLogin</strong>-Anwendung (mit <code>.csproj</code>). Wird beim nächsten Klick auf eine AutoLogin-Kachel automatisch via <code>dotnet run</code> gestartet, falls die App nicht bereits läuft.
+        </div>
+        <input type="text" id="mlPathInput" value="${current.replace(/"/g,'&quot;')}" placeholder="/Users/dein-user/MerkurLogin" autocomplete="off" spellcheck="false"
+               style="width:100%; padding:.55rem .7rem; border:1px solid var(--mc-border); border-radius:var(--mc-radius-sm); font-family:ui-monospace,Consolas,monospace; font-size:.85rem; margin-bottom:.5rem;" />
+        <div style="font-size:.72rem; color:var(--mc-text-muted); margin-bottom:.85rem;">
+            <i class="bi bi-info-circle"></i> Der Pfad wird nur in deinem Browser gespeichert (localStorage), nicht in der Datenbank.
+        </div>
+        <div style="display:flex; gap:.5rem; justify-content:flex-end;">
+            ${current ? '<button onclick="merkurLoginPfadLoeschen()" class="btn-mc btn-mc-outline" style="color:var(--mc-danger);"><i class="bi bi-trash"></i> Entfernen</button>' : ''}
+            <button onclick="document.getElementById('alPopup').remove()" class="btn-mc btn-mc-outline">Abbrechen</button>
+            <button onclick="merkurLoginPfadSpeichern()" class="btn-mc btn-mc-filled"><i class="bi bi-check2"></i> Speichern</button>
+        </div>
+    `;
+    document.body.appendChild(popup);
+    setTimeout(() => document.getElementById('mlPathInput')?.focus(), 100);
+}
+
+function merkurLoginPfadSpeichern() {
+    const v = (document.getElementById('mlPathInput').value || '').trim();
+    if (v) localStorage.setItem('merkurLoginPfad', v);
+    else localStorage.removeItem('merkurLoginPfad');
+    document.getElementById('alPopup').remove();
+    autoLoginPopupStatus('<i class="bi bi-check-circle-fill" style="color:var(--mc-success);"></i> ' + (v ? 'Pfad gespeichert' : 'Pfad entfernt'), 2000);
+}
+
+function merkurLoginPfadLoeschen() {
+    localStorage.removeItem('merkurLoginPfad');
+    document.getElementById('alPopup').remove();
+    autoLoginPopupStatus('<i class="bi bi-check-circle-fill" style="color:var(--mc-success);"></i> Pfad entfernt', 2000);
 }
 
 function autoLoginPopupStatus(html, autoClose) {
@@ -1376,8 +1467,9 @@ function autoLoginPopupZeigen(username, passwort, tileId) {
             </div>
         </div>
         <div style="font-size:.72rem; color:var(--mc-success); text-align:center;"><i class="bi bi-check-circle"></i> Benutzername wurde in die Zwischenablage kopiert — Ctrl+V im Login-Feld</div>
-        <div style="margin-top:.5rem; text-align:center;">
+        <div style="margin-top:.5rem; text-align:center; display:flex; gap:.75rem; justify-content:center; flex-wrap:wrap;">
             <button onclick="autoLoginBearbeiten(${tileId})" style="font-size:.72rem; color:var(--mc-text-muted); background:none; border:none; cursor:pointer; text-decoration:underline;">Zugangsdaten ändern</button>
+            <button onclick="merkurLoginConfig()" style="font-size:.72rem; color:var(--mc-petrol); background:none; border:none; cursor:pointer; text-decoration:underline;"><i class="bi bi-gear"></i> MerkurLogin-Pfad einstellen</button>
         </div>
     `;
     document.body.appendChild(popup);
