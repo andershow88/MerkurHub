@@ -722,6 +722,7 @@ public class ApiController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public IActionResult MerkurLoginStarten([FromBody] MerkurLoginStartDto dto)
     {
         var pfad = dto?.Pfad?.Trim();
