@@ -175,7 +175,7 @@ img { max-width: 100%; height: auto; }
 .mc-kpi-icon { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 2.5rem; opacity: 0.06; color: var(--mc-text-dark); }
 
 /* 9. Tiles */
-.mc-tiles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; }
+.mc-tiles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 1rem; }
 
 .mc-tile {
     background: var(--mc-bg-card);
