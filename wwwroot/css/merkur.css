@@ -19,7 +19,7 @@
     --mc-text: #4a5568;
     --mc-text-dark: #1a202c;
     --mc-text-muted: #8895a7;
-    --mc-topbar-h: 64px;
+    --mc-topbar-h: 96px;
     --mc-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
     --mc-shadow-lg: 0 10px 25px rgba(0,0,0,0.07), 0 4px 10px rgba(0,0,0,0.04);
     --mc-radius: 14px;
@@ -102,7 +102,7 @@ img { max-width: 100%; height: auto; }
 }
 
 .mc-topbar-brand { display: flex; align-items: center; gap: 0.75rem; }
-.mc-topbar-brand img { height: 38px; width: auto; }
+.mc-topbar-brand img { height: 76px; width: auto; }
 .mc-topbar-brand span { color: var(--mc-petrol); font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 1.15rem; white-space: nowrap; }
 
 .mc-topbar-nav { display: flex; gap: 0.15rem; margin-left: 2rem; }
